@@ -76,6 +76,9 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
 - **Node 20 realtime shim** for the Supabase integration tests
 
+**Polish batch #4 (2026-09-26)**
+- **Balance sparklines on `/loans` rows** — new `<Sparkline points={number[]} />` component (pure SVG, ~72×16, primary-color line + soft area fill). Rendered under the Balance amount using the engine's `schedule[].closingBalance` for past periods, pinned to the current balance as the final point. No new deps, no client JS.
+
 **Polish batch #3 (2026-09-26)**
 - **Print-friendly borrower statement** — `Print` button on `/reports/statement` (next to Download CSV) fires `window.print()`; page renders with a letterhead (borrower name + contact + address on the left, lender `display_name` + generated date + period range on the right), one loan per page, flat greyscale borders on tables, and repeated table headers across page breaks
 - Global `@media print` block in `globals.css` — A4 with 14/12 mm margins, `.print-hide` utility (also hides sonner Toaster + dialog overlays), `.print-doc` container for scoped print styles, `data-print-card` for tabular loan cards, `data-print-page-break` marker

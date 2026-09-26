@@ -34,6 +34,7 @@ export default async function LoansPage() {
     let nextDueDate: string | null = null
     let nextDueAmount = '0.00'
     let isOverdue = false
+    let balanceHistory: number[] = [Number(loan.principal)]
     try {
       const out = compute({
         loan: {
@@ -56,6 +57,16 @@ export default async function LoansPage() {
       nextDueDate = out.nextDueDate ? out.nextDueDate.toISOString() : null
       nextDueAmount = out.nextDueAmount.toFixed(2)
       isOverdue = out.schedule.some((r) => r.isOverdue)
+      // Sparkline series: principal → closing balance of each past period → current.
+      // The final point pins the line to what the row's "Balance" column shows.
+      const past = out.schedule.filter((r) => r.dueDate <= now)
+      balanceHistory = [
+        Number(loan.principal),
+        ...past.map((r) => Number(r.closingBalance.toFixed(2))),
+      ]
+      const last = balanceHistory[balanceHistory.length - 1]
+      const currentNum = Number(currentBalance)
+      if (last !== currentNum) balanceHistory.push(currentNum)
     } catch {}
     return {
       id: loan.id,
@@ -69,6 +80,7 @@ export default async function LoansPage() {
       nextDueDate,
       nextDueAmount,
       isOverdue,
+      balanceHistory,
     }
   })
 

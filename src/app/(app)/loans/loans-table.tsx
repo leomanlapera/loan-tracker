@@ -22,6 +22,7 @@ import {
   type SortState,
 } from '@/components/ui/sortable-header'
 import { EmptyState } from '@/components/empty-state'
+import { Sparkline } from '@/components/ui/sparkline'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
 import { loanStatusLabel } from '@/lib/labels'
 import { LoanRowActions } from './loan-row-actions'
@@ -38,6 +39,7 @@ export interface LoanRow {
   nextDueDate: string | null
   nextDueAmount: string
   isOverdue: boolean
+  balanceHistory: number[]
 }
 
 type SortKey =
@@ -185,7 +187,17 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
                       {formatRate(Number(r.monthlyRate))}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatPHP(r.currentBalance)}
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>{formatPHP(r.currentBalance)}</span>
+                        {r.balanceHistory.length >= 2 ? (
+                          <Sparkline
+                            points={r.balanceHistory}
+                            width={72}
+                            height={16}
+                            ariaLabel={`Balance trend for ${r.borrowerName}`}
+                          />
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm">
                       {r.nextDueDate ? (

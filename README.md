@@ -87,6 +87,7 @@ pnpm test:integration
 - **Dark mode** — light / dark / system, persisted, no FOUC
 - **Row actions** on `/loans` — `⋯` menu with Log payment / Open / Edit
 - **Sortable column headers** on `/loans` and `/borrowers` (nulls sort last)
+- **Balance sparklines** on `/loans` rows — pure-SVG mini-chart of balance-over-time under each row's Balance amount
 - **Onboarding empty state** on `/dashboard` when you have no loans yet
 - **Toasts** for every save/edit/delete; **loading spinners** in every submit button
 - **Skeletons** on every list and detail page
