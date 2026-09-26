@@ -164,3 +164,71 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Print rules — used by the borrower statement handoff. Apply globally so any
+   route can add a `.print-doc` container and get the same base treatment. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 10pt;
+  }
+  /* Anything decorative gets stripped for print. Explicit opt-outs live on
+     `.print-hide`; the app shell hides itself via that class. */
+  .print-hide,
+  [data-sonner-toaster],
+  [data-slot="dialog-overlay"],
+  [data-slot="alert-dialog-overlay"] {
+    display: none !important;
+  }
+  /* Inside a print doc, we want a clean stack, not a sidebar layout. */
+  .print-doc {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    color: #000 !important;
+  }
+  .print-doc a {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+  .print-doc [data-print-card] {
+    box-shadow: none !important;
+    border: 1px solid #999 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    break-inside: avoid;
+  }
+  .print-doc [data-print-page-break] {
+    break-before: page;
+  }
+  .print-doc table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt;
+  }
+  .print-doc thead {
+    display: table-header-group;
+  }
+  .print-doc tr {
+    break-inside: avoid;
+  }
+  .print-doc th,
+  .print-doc td {
+    border: 1px solid #bbb !important;
+    padding: 3pt 5pt !important;
+    color: #000 !important;
+  }
+  .print-doc th {
+    background: #f2f2f2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+

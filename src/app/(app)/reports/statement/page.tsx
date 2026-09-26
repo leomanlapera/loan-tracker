@@ -46,12 +46,36 @@ export default async function StatementReport({
     ? (await loadAllLoans()).filter((l) => l.borrower_id === borrowerId)
     : []
 
+  // For the print letterhead we want the full borrower record + the lender's
+  // display name. Both are cheap point lookups; skip when no borrower chosen.
+  const [borrowerDetail, lenderProfile] = borrowerId
+    ? await Promise.all([
+        supabase
+          .from('borrowers')
+          .select('full_name, mobile, email, address')
+          .eq('id', borrowerId)
+          .maybeSingle(),
+        supabase.auth.getUser().then(async ({ data }) =>
+          data.user
+            ? supabase
+                .from('profiles')
+                .select('display_name')
+                .eq('id', data.user.id)
+                .maybeSingle()
+            : { data: null },
+        ),
+      ])
+    : [{ data: null }, { data: null }]
+  const borrower = borrowerDetail?.data ?? null
+  const lenderName = lenderProfile?.data?.display_name ?? null
+  const generatedOn = format(new Date(), 'MMMM d, yyyy')
+
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="print-doc space-y-6">
+      <div className="print-hide">
         <BackLink href="/reports">Reports</BackLink>
       </div>
-      <div>
+      <div className="print-hide">
         <h1 className="text-2xl font-semibold tracking-tight">Borrower statement</h1>
         <p className="text-sm text-muted-foreground">
           Full schedule and payment history for a single borrower.
@@ -64,6 +88,30 @@ export default async function StatementReport({
         initialFrom={range.from}
         initialTo={range.to}
       />
+
+      {borrowerId && borrower ? (
+        <header className="hidden print:block">
+          <div className="flex items-start justify-between gap-6 border-b border-black pb-3">
+            <div>
+              <div className="text-xs uppercase tracking-widest">Borrower statement</div>
+              <div className="mt-1 text-lg font-semibold">{borrower.full_name}</div>
+              <div className="text-xs">
+                {[borrower.mobile, borrower.email].filter(Boolean).join(' · ') || '—'}
+              </div>
+              {borrower.address ? (
+                <div className="text-xs whitespace-pre-line">{borrower.address}</div>
+              ) : null}
+            </div>
+            <div className="text-right text-xs">
+              {lenderName ? <div className="font-semibold text-sm">{lenderName}</div> : null}
+              <div>Generated {generatedOn}</div>
+              <div>
+                Period {formatDate(range.from)} – {formatDate(range.to)}
+              </div>
+            </div>
+          </div>
+        </header>
+      ) : null}
 
       {!borrowerId ? (
         <Card>
@@ -78,13 +126,17 @@ export default async function StatementReport({
           </CardContent>
         </Card>
       ) : (
-        loans.map((loan) => {
+        loans.map((loan, idx) => {
           const summary = summarizeAt(loan, range.toDate)
           const paymentsInRange = loan.payments
             .filter((p) => !p.deleted_at && p.paid_on >= range.from && p.paid_on <= range.to)
             .sort((a, b) => (a.paid_on < b.paid_on ? 1 : -1))
           return (
-            <Card key={loan.id}>
+            <Card
+              key={loan.id}
+              data-print-card
+              {...(idx > 0 ? { 'data-print-page-break': true } : {})}
+            >
               <CardHeader>
                 <CardTitle className="text-base">
                   <Link href={`/loans/${loan.id}`} className="hover:underline">

@@ -76,6 +76,10 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
 - **Node 20 realtime shim** for the Supabase integration tests
 
+**Polish batch #3 (2026-09-26)**
+- **Print-friendly borrower statement** — `Print` button on `/reports/statement` (next to Download CSV) fires `window.print()`; page renders with a letterhead (borrower name + contact + address on the left, lender `display_name` + generated date + period range on the right), one loan per page, flat greyscale borders on tables, and repeated table headers across page breaks
+- Global `@media print` block in `globals.css` — A4 with 14/12 mm margins, `.print-hide` utility (also hides sonner Toaster + dialog overlays), `.print-doc` container for scoped print styles, `data-print-card` for tabular loan cards, `data-print-page-break` marker
+
 **Polish batch #2 (2026-09-26)**
 - **Formatted money inputs** — `MoneyInput` is now controlled, shows thousands separators as you type (`10000` → `10,000`); wired via `Controller` in loan form (principal + custom schedule rows), payment dialog, global log-payment button
 - **Loading spinners in submit buttons** — `Loader2` on auth `SubmitButton` (login, reset), borrower form, loan form, payment dialog, settings form, global log-payment

@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
+import { Printer } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -57,7 +58,7 @@ export function StatementFilterForm({
     <form
       key={`${initialBorrowerId}-${initialFrom}-${initialTo}`}
       onSubmit={onSubmit}
-      className="flex flex-wrap gap-3 rounded-md border p-3 [&>*]:w-full sm:[&>*]:w-40"
+      className="print-hide flex flex-wrap gap-3 rounded-md border p-3 [&>*]:w-full sm:[&>*]:w-40"
     >
       <FilterField id="borrowerId" label="Borrower" className="sm:!w-56">
         <Select value={borrowerId} onValueChange={(v) => setBorrowerId(v ?? UNSET)}>
@@ -92,16 +93,32 @@ export function StatementFilterForm({
         </Button>
       </FilterField>
       {exportHref ? (
-        <FilterField
-          label={<HiddenLabel>Download CSV</HiddenLabel>}
-          className="sm:!ml-auto sm:!w-auto"
-        >
-          <a href={exportHref}>
-            <Button type="button" className="h-8 w-full sm:w-auto">
-              Download CSV
+        <>
+          <FilterField
+            label={<HiddenLabel>Print</HiddenLabel>}
+            className="sm:!ml-auto sm:!w-auto"
+          >
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 w-full sm:w-auto"
+              onClick={() => window.print()}
+            >
+              <Printer className="size-4 shrink-0" aria-hidden />
+              Print
             </Button>
-          </a>
-        </FilterField>
+          </FilterField>
+          <FilterField
+            label={<HiddenLabel>Download CSV</HiddenLabel>}
+            className="sm:!w-auto"
+          >
+            <a href={exportHref}>
+              <Button type="button" className="h-8 w-full sm:w-auto">
+                Download CSV
+              </Button>
+            </a>
+          </FilterField>
+        </>
       ) : null}
     </form>
   )

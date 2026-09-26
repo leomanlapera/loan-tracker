@@ -61,7 +61,7 @@ export function AppShell({ userEmail, children }: Props) {
     <div className="flex min-h-screen">
       <aside
         className={cn(
-          'bg-sidebar text-sidebar-foreground sticky top-0 z-40 flex h-screen shrink-0 flex-col border-r',
+          'bg-sidebar text-sidebar-foreground sticky top-0 z-40 flex h-screen shrink-0 flex-col border-r print-hide',
           'transition-[width] duration-200 will-change-[width]',
           open ? 'w-56' : 'w-14',
         )}
@@ -173,8 +173,10 @@ export function AppShell({ userEmail, children }: Props) {
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="w-full flex-1 px-4 py-6">{children}</main>
       </div>
-      <CommandPalette />
-      <KeyboardShortcuts />
+      <div className="print-hide">
+        <CommandPalette />
+        <KeyboardShortcuts />
+      </div>
     </div>
   )
 }

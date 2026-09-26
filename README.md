@@ -71,7 +71,7 @@ pnpm test:integration
 - **Dashboard** — every PRD §5.6 tile plus a live overdue banner (top 5 overdue loans by name)
 - **Reports** (all with date filters + CSV export)
   - Portfolio summary
-  - Borrower statement
+  - Borrower statement (with **Print** button — letterhead + one-loan-per-page layout via `@media print`)
   - Collections (day/week/month × method)
   - Interest income (per-month interest portion of payments)
   - Aging (1-30 / 31-60 / 61-90 / 90+)
