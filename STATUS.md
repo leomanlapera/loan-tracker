@@ -37,7 +37,7 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - Zod-validated inputs in `src/lib/validation/auth.ts`
 - Pages: `/login`, `/sign-up`, `/reset-password`, `/reset-password/update`
 - `/auth/callback` route handler exchanges the code from email links for a session
-- Middleware now bounces authenticated users away from login/signup, and preserves the `next` query param through the login redirect
+- Middleware bounces authenticated users away from login/signup, and preserves the `next` query param through the login redirect
 - `src/lib/supabase/admin.ts` — service-role client for account deletion; `server-only` import blocks client bundling
 - `src/app/(app)/layout.tsx` — protected shell with sign-out button; `/dashboard` placeholder
 
@@ -53,7 +53,7 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - Next.js 16 (App Router, Turbopack, TypeScript, `src/` layout)
 - Tailwind CSS v4 + shadcn/ui (button, input, card, table, dialog, label)
 - Runtime deps: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `server-only`
-- Dev deps: Vitest 3 + `@vitejs/plugin-react`, jsdom 24, Playwright, Prettier + tailwind plugin
+- Dev deps: Vitest 3 + `@vitejs/plugin-react`, jsdom 24, Playwright, Prettier + tailwind plugin, `supabase` CLI
 
 **Engine** (Phase 1) — `src/lib/engine/`, 30 passing tests, PRD §6.6 cases to the centavo
 
@@ -61,7 +61,7 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - `src/lib/supabase/{client,server,middleware,admin}.ts` using `@supabase/ssr` + admin service-role helper
 - Root `middleware.ts` — session refresh + redirect logic (unauth → login with `next=`, auth → dashboard from auth pages)
 - `supabase/config.toml` linked to remote project ref `skmwpbkrdsxlhlgsprmq`
-- `supabase/README.md` documents the push flow
+- Supabase CLI bundled as a dev dep (`pnpm exec supabase ...`); see `supabase/README.md`
 
 **Routes**
 - `/` — landing (public, shows different CTAs based on session)
@@ -87,7 +87,6 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 ## Known deferred
 
 - shadcn `form` component slug not resolving from the current registry — will render forms with plain fields until Phase 3 (deps `react-hook-form` + `@hookform/resolvers` already installed).
-- Supabase CLI not installed globally; needed for `pnpm db:*` scripts (`brew install supabase/tap/supabase`).
 - Vercel project not linked yet.
 - Interest-only repayment type — Phase 8 backlog.
 - Playwright two-user auth flow test — deferred to Phase 3 when there's a real CRUD flow to walk through.
@@ -96,18 +95,17 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 
 Before Phase 3 UI can hit real data, YOU need to:
 
-1. **Install the Supabase CLI** (one-time):
+1. **Authenticate the Supabase CLI** (one-time, interactive):
    ```bash
-   brew install supabase/tap/supabase   # macOS
+   pnpm exec supabase login
    ```
-2. **Link and push migrations**:
+2. **Link the repo to your dev project** and push migrations:
    ```bash
-   supabase login
-   supabase link --project-ref skmwpbkrdsxlhlgsprmq
+   pnpm exec supabase link --project-ref skmwpbkrdsxlhlgsprmq
    pnpm db:push
    ```
 3. **Supabase Dashboard** → Auth → URL Configuration → Site URL: `http://localhost:3000` (for dev email links).
-4. **Run RLS tests** to confirm the migrations are correct:
+4. **Run RLS tests** to confirm the migrations landed correctly:
    ```bash
    pnpm test:integration
    ```
