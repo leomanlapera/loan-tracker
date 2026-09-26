@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { signOutAction } from '@/app/(auth)/actions'
 import { Button } from '@/components/ui/button'
+import { SiteFooter } from '@/components/site-footer'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -20,7 +21,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!user) redirect('/login')
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-screen flex-col">
       <header className="border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-6">
@@ -50,6 +51,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+      <SiteFooter />
     </div>
   )
 }

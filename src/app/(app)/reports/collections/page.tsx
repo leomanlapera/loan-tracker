@@ -19,6 +19,7 @@ import {
 } from '@/lib/reports/collections'
 import { formatPHP } from '@/lib/format'
 import { PAYMENT_METHODS, paymentMethodLabels } from '@/lib/validation/payment'
+import { GroupBySelect } from './group-by-select'
 
 export default async function CollectionsReport({
   searchParams,
@@ -65,28 +66,7 @@ export default async function CollectionsReport({
         initialFrom={range.from}
         initialTo={range.to}
         exportPath="/reports/collections/export"
-        extraFilters={
-          <div className="space-y-1">
-            <label htmlFor="groupBy" className="text-xs font-medium">
-              Group by
-            </label>
-            <select
-              id="groupBy"
-              name="groupBy"
-              defaultValue={groupBy}
-              className="border-input rounded-md border px-3 py-2 text-sm"
-              onChange={(e) => {
-                const url = new URL(window.location.href)
-                url.searchParams.set('groupBy', e.target.value)
-                window.location.href = url.toString()
-              }}
-            >
-              <option value="day">Day</option>
-              <option value="week">Week</option>
-              <option value="month">Month</option>
-            </select>
-          </div>
-        }
+        extraFilters={<GroupBySelect value={groupBy} />}
       />
 
       <Card>

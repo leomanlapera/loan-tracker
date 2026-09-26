@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
+import { SiteFooter } from '@/components/site-footer'
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -9,7 +10,7 @@ export default async function LandingPage() {
   } = await supabase.auth.getUser()
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div className="flex min-h-screen flex-col">
       <header className="border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <span className="text-lg font-semibold">Loan Tracker</span>
@@ -59,10 +60,8 @@ export default async function LandingPage() {
             </>
           )}
         </div>
-        <p className="text-muted-foreground mt-6 max-w-lg text-xs">
-          This app is a record-keeping tool, not legal or financial advice.
-        </p>
       </main>
+      <SiteFooter />
     </div>
   )
 }

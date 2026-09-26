@@ -120,7 +120,7 @@ export function BalanceChart({ loan, payments }: Props) {
             type="monotone"
             dataKey="compound"
             name={activeIsCompound ? 'Compound (this loan)' : 'Compound (projected)'}
-            stroke="hsl(var(--primary))"
+            stroke="var(--chart-1)"
             strokeWidth={activeIsCompound ? 2 : 1.25}
             dot={false}
           />
@@ -128,7 +128,7 @@ export function BalanceChart({ loan, payments }: Props) {
             type="monotone"
             dataKey="simple"
             name={activeIsCompound ? 'Simple (projected)' : 'Simple (this loan)'}
-            stroke="hsl(var(--muted-foreground))"
+            stroke="var(--chart-3)"
             strokeDasharray="4 4"
             strokeWidth={activeIsCompound ? 1.25 : 2}
             dot={false}
