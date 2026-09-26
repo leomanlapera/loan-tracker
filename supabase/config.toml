@@ -1,0 +1,26 @@
+# Supabase CLI config.
+# Remote project ref: skmwpbkrdsxlhlgsprmq
+# Link with:  supabase link --project-ref skmwpbkrdsxlhlgsprmq
+# Docs: https://supabase.com/docs/guides/cli/config
+
+project_id = "skmwpbkrdsxlhlgsprmq"
+
+[db]
+port = 54322
+
+[api]
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enable_signup = true
+enable_confirmations = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true

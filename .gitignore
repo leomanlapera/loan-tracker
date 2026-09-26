@@ -32,9 +32,19 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# playwright
+/tests/.playwright
+/playwright-report
+/test-results
+
+# supabase
+supabase/.temp
+supabase/.branches
 
 # typescript
 *.tsbuildinfo
