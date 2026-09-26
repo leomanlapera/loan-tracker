@@ -30,19 +30,20 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - **Dark mode toggle** in the sidebar footer (light / dark / system), persisted via localStorage; inline `<script>` in `<head>` prevents FOUC on first paint
 
 **App shell**
-- Sidebar navigation (icon-collapse mode) instead of top nav; sticky, `sticky top-0 h-screen`
-- "Signed in as email" + Sign out + Theme + Collapse cluster at the sidebar footer
+- Sidebar navigation (≥md, icon-collapse mode) instead of top nav; sticky, `sticky top-0 h-screen`
+- Mobile (<md): fixed bottom tab bar replaces the sidebar (Home / Loans / raised "+" / Borrowers / More)
+- "Signed in as email" + Sign out + Theme + Collapse cluster at the sidebar footer (mirrored in the mobile More sheet)
 - No top header; no shared footer (content-first)
 - Full-width main content (no `max-w-6xl` cap)
 
 **Global actions**
 - **`GlobalLogPaymentButton`** in the sidebar (primary CTA) and on the dashboard header — searchable loan picker + inline payment form. Zero navigation to log a payment.
-- **Cmd/Ctrl + K command palette** (`src/components/command-palette.tsx`) — fuzzy search of borrowers + loans, `↑/↓/Enter` navigation
-- **Keyboard shortcuts** — `n` (context-aware new borrower/loan), `/` (focus first search input); auto-skipped while typing in inputs
+- **Cmd/Ctrl + K command palette** (`src/components/command-palette.tsx`) — fuzzy search of borrowers + loans, `↑/↓/Enter` navigation, "Recent" section (localStorage ring buffer, cap 8) when the query is empty
+- **Keyboard shortcuts** — `n` (context-aware new borrower/loan), `/` (focus first search input), `?` (open cheatsheet dialog); auto-skipped while typing in inputs
 
 **Forms**
-- New borrower / new loan / edit loan share the same shell: BackLink → h1 → description → Card-wrapped form
-- `MoneyInput` component with a `₱` prefix inside the field — used on principal, custom-schedule rows, and every payment amount input
+- New borrower / new loan / edit loan share the same shell: Breadcrumbs → h1 → description → Card-wrapped form
+- `MoneyInput` component with a `₱` prefix inside the field and thousands separators as you type — used on principal, custom-schedule rows, and every payment amount input
 - `PasswordInput` component with Eye/EyeOff toggle
 - `Checkbox` (shadcn) replaces all raw `<input type="checkbox">`
 - Filter bars: shared `FilterField` + `flex flex-wrap gap-3 [&>*]:w-full sm:[&>*]:w-40` recipe across `/activity` and all six reports; buttons override with `sm:!w-auto`
@@ -50,21 +51,25 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 
 **Tables**
 - **Sticky table headers** across the app (Schedule, Payment log, Reports)
+- **Sortable columns** on `/loans` (Borrower, Start, Principal, Rate, Balance, Next due, Status) and `/borrowers` (Name, Active loans, Outstanding); nulls sort last
+- **Balance sparklines** on `/loans` rows — pure-SVG mini-chart under the Balance amount
 - **Row actions** on `/loans` list — `⋯` dropdown with "Log payment" (opens dialog inline), "Open loan", "Edit loan"
 - **Empty states** with icon + headline + CTA on `/borrowers` and `/loans`
 - All enum badges use `src/lib/labels.ts` (loan status, interest method, repayment type, period status, activity entity, activity action) — no more `equal_installments` in the UI
 
 **Feedback**
 - **Sonner toasts** mounted at the root; wired into every save/edit/delete (borrower/loan/payment/settings) with themed styling
+- **Loading spinners** on every submit button (auth, borrower, loan, payment, settings, global log-payment)
 - **Delete-payment confirmation dialog** (soft delete still, but requires confirm)
 - **Dashboard overdue banner** lists the top 5 overdue loans (borrower name + days past due + shortfall) instead of "N overdue"
+- **Dashboard onboarding card** appears when the user has no loans yet — Sparkles icon + Add borrower / New loan CTAs
 
 **Loading & errors**
 - `Skeleton` component + route-level `loading.tsx` files for `/dashboard`, `/loans`, `/loans/[id]`, `/borrowers`, `/reports`
 - `src/app/error.tsx` (global) + `src/app/(app)/error.tsx` (in-shell) — friendly retry + error id
 
 **Navigation micro-fixes**
-- `BackLink` component with `ArrowLeft` icon replaces every `← Text` link (11 pages)
+- `<Breadcrumbs items={[...]} />` on every detail/nested page (11 pages) — ChevronRight separators, `aria-current="page"` on the last crumb; replaced the earlier `BackLink`
 - Legal `/privacy` + `/terms` retained (public routes; header + footer inside their own `(legal)` layout)
 
 **Invite-only auth (breaking change)**
@@ -104,12 +109,12 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 
 ## Verified
 
-- ✅ `pnpm lint` (0 errors; 3 non-blocking React Compiler notes on RHF `watch()`)
+- ✅ `pnpm lint` (0 errors; 2 non-blocking React Compiler notes on RHF `watch()`)
 - ✅ `pnpm typecheck`
 - ✅ `pnpm test` (39/39 — engine + allocation + CSV)
 - ✅ `pnpm test:integration` (19/19 last run — RLS + activity triggers)
 - ✅ `pnpm e2e` (23/23 — smoke + auth gates + a11y + mobile viewport)
-- ✅ `pnpm build` — 27 routes (was 31; dropped `/sign-up`, `/sign-up/check-inbox`)
+- ✅ `pnpm build` — 27 routes
 
 ## What's shipped
 
