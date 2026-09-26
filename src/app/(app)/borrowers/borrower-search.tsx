@@ -3,10 +3,10 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Users } from 'lucide-react'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/empty-state'
+import { SearchWithHint } from '@/components/search-with-hint'
 import {
   Table,
   TableBody,
@@ -15,6 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  SortableHeader,
+  compareBy,
+  toggleSort,
+  type SortState,
+} from '@/components/ui/sortable-header'
 import { formatPHP } from '@/lib/format'
 
 export interface BorrowerRow {
@@ -27,17 +33,31 @@ export interface BorrowerRow {
   totalOutstanding: string
 }
 
+type SortKey = 'name' | 'contact' | 'activeLoanCount' | 'outstanding' | 'status'
+
 export function BorrowerSearch({ rows }: { rows: BorrowerRow[] }) {
   const [q, setQ] = useState('')
+  const [sort, setSort] = useState<SortState<SortKey> | null>({
+    key: 'name',
+    direction: 'asc',
+  })
+
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase()
-    if (!query) return rows
-    return rows.filter((r) =>
-      [r.fullName, r.mobile ?? '', r.email ?? ''].some((f) =>
-        f.toLowerCase().includes(query),
-      ),
+    const base = query
+      ? rows.filter((r) =>
+          [r.fullName, r.mobile ?? '', r.email ?? ''].some((f) =>
+            f.toLowerCase().includes(query),
+          ),
+        )
+      : rows
+    if (!sort) return base
+    return [...base].sort((a, b) =>
+      compareBy(a, b, (r) => sortValue(r, sort.key), sort.direction),
     )
-  }, [rows, q])
+  }, [rows, q, sort])
+
+  const onSort = (key: SortKey) => setSort((s) => toggleSort(s, key))
 
   if (rows.length === 0) {
     return (
@@ -58,7 +78,7 @@ export function BorrowerSearch({ rows }: { rows: BorrowerRow[] }) {
 
   return (
     <div className="space-y-3">
-      <Input
+      <SearchWithHint
         placeholder="Search by name, mobile, or email"
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -67,10 +87,32 @@ export function BorrowerSearch({ rows }: { rows: BorrowerRow[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>
+                <SortableHeader columnKey="name" currentSort={sort} onSort={onSort}>
+                  Name
+                </SortableHeader>
+              </TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead className="text-right">Active loans</TableHead>
-              <TableHead className="text-right">Outstanding</TableHead>
+              <TableHead className="text-right">
+                <SortableHeader
+                  columnKey="activeLoanCount"
+                  currentSort={sort}
+                  onSort={onSort}
+                  align="right"
+                >
+                  Active loans
+                </SortableHeader>
+              </TableHead>
+              <TableHead className="text-right">
+                <SortableHeader
+                  columnKey="outstanding"
+                  currentSort={sort}
+                  onSort={onSort}
+                  align="right"
+                >
+                  Outstanding
+                </SortableHeader>
+              </TableHead>
               <TableHead className="text-right">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -105,4 +147,19 @@ export function BorrowerSearch({ rows }: { rows: BorrowerRow[] }) {
       </div>
     </div>
   )
+}
+
+function sortValue(r: BorrowerRow, key: SortKey): string | number | null {
+  switch (key) {
+    case 'name':
+      return r.fullName.toLowerCase()
+    case 'contact':
+      return (r.mobile || r.email || '').toLowerCase()
+    case 'activeLoanCount':
+      return r.activeLoanCount
+    case 'outstanding':
+      return Number(r.totalOutstanding)
+    case 'status':
+      return r.archivedAt ? 'archived' : 'active'
+  }
 }

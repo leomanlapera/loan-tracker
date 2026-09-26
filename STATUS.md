@@ -76,6 +76,15 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
 - **Node 20 realtime shim** for the Supabase integration tests
 
+**Polish batch #2 (2026-09-26)**
+- **Formatted money inputs** — `MoneyInput` is now controlled, shows thousands separators as you type (`10000` → `10,000`); wired via `Controller` in loan form (principal + custom schedule rows), payment dialog, global log-payment button
+- **Loading spinners in submit buttons** — `Loader2` on auth `SubmitButton` (login, reset), borrower form, loan form, payment dialog, settings form, global log-payment
+- **Onboarding empty state on `/dashboard`** — Welcome card with `Sparkles` icon + CTAs (Add borrower / New loan) shown when `!hasAnyLoans`
+- **Sortable table columns** — new `SortableHeader` + `compareBy` + `toggleSort` (nulls last); `/loans` (Borrower, Start, Principal, Rate, Balance, Next due, Status; default Next due asc) and `/borrowers` (Name, Active loans, Outstanding; default Name asc)
+- **Cmd+K recently viewed** — `RecentTracker` client component pushes to a localStorage ring buffer (cap 8) on every visit to `/borrowers/[id]` and `/loans/[id]`; palette shows a "Recent" section with `Clock` icon when the query is empty; labels re-hydrate from live data so renamed borrowers show the fresh name
+- **⌘K hint chip in list search** — new `SearchWithHint` (Search icon + `<kbd>⌘K</kbd>`) on `/borrowers` and `/loans`
+- **Borrower select fix** — Loan form + payment dialog + settings form now use `Controller` universally (was: `register` + `setValue`, which didn't reliably re-render the base-ui `Select`); the borrower dropdown on `/loans/[id]/edit` is disabled with a hint (borrower cannot change post-creation)
+
 ## Verified
 
 - ✅ `pnpm lint` (0 errors; 3 non-blocking React Compiler notes on RHF `watch()`)

@@ -7,6 +7,7 @@ import {
   addDays,
   isAfter,
 } from 'date-fns'
+import { Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { GlobalLogPaymentButton } from '@/components/global-log-payment'
@@ -136,6 +137,8 @@ export default async function DashboardPage() {
   recentPayments.sort((a, b) => (a.paidOn < b.paidOn ? 1 : -1))
   const recent = recentPayments.slice(0, 5)
 
+  const hasAnyLoans = loans.length > 0
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -155,6 +158,33 @@ export default async function DashboardPage() {
           <GlobalLogPaymentButton />
         </div>
       </div>
+
+      {!hasAnyLoans ? (
+        <Card className="border-primary/30 from-primary/5 to-transparent bg-gradient-to-br">
+          <CardContent className="flex flex-col items-start gap-4 py-8">
+            <div className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-full">
+              <Sparkles className="size-6" aria-hidden />
+            </div>
+            <div className="space-y-1">
+              <div className="text-lg font-semibold tracking-tight">
+                Welcome to Loan Tracker
+              </div>
+              <p className="text-muted-foreground max-w-lg text-sm">
+                Get started in two steps: add a borrower, then log their loan. Balances,
+                schedules, and reports will populate the moment you do.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/borrowers/new">
+                <Button>Add your first borrower</Button>
+              </Link>
+              <Link href="/loans/new">
+                <Button variant="outline">Skip to new loan</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Active loans" value={String(activeCount)} />

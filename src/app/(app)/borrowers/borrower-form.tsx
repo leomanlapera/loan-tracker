@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 import { borrowerSchema, type BorrowerInput } from '@/lib/validation/borrower'
 import { createBorrower, updateBorrower } from './actions'
 import { Field } from '@/components/form/field'
@@ -94,7 +95,16 @@ export function BorrowerForm({ mode, borrowerId, initial }: Props) {
 
       <div className="flex gap-3">
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Saving…' : mode === 'create' ? 'Create borrower' : 'Save changes'}
+          {isPending ? (
+            <>
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+              Saving…
+            </>
+          ) : mode === 'create' ? (
+            'Create borrower'
+          ) : (
+            'Save changes'
+          )}
         </Button>
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           Cancel

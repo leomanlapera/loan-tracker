@@ -2,9 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 import { settingsSchema, type SettingsInput } from '@/lib/validation/settings'
 import { updateSettings } from './actions'
 import { Field } from '@/components/form/field'
@@ -30,8 +31,7 @@ export function SettingsForm({ initial }: Props) {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
+    control,
     setError,
     formState: { errors },
   } = useForm<SettingsInput>({
@@ -95,23 +95,29 @@ export function SettingsForm({ initial }: Props) {
           label="Default interest method"
           error={errors.defaultInterestMethod?.message}
         >
-          <Select
-            value={watch('defaultInterestMethod')}
-            onValueChange={(v) =>
-              setValue('defaultInterestMethod', (v ?? 'compound') as (typeof INTEREST_METHODS)[number])
-            }
-          >
-            <SelectTrigger id="defaultInterestMethod">
-              <SelectValue>{(v) => (v === 'simple' ? 'Simple' : 'Compound')}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {INTEREST_METHODS.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m === 'compound' ? 'Compound' : 'Simple'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={control}
+            name="defaultInterestMethod"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(v) =>
+                  field.onChange((v ?? 'compound') as (typeof INTEREST_METHODS)[number])
+                }
+              >
+                <SelectTrigger id="defaultInterestMethod">
+                  <SelectValue>{(v) => (v === 'simple' ? 'Simple' : 'Compound')}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {INTEREST_METHODS.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m === 'compound' ? 'Compound' : 'Simple'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </Field>
 
         <Field
@@ -119,35 +125,48 @@ export function SettingsForm({ initial }: Props) {
           label="Default repayment type"
           error={errors.defaultRepaymentType?.message}
         >
-          <Select
-            value={watch('defaultRepaymentType')}
-            onValueChange={(v) =>
-              setValue('defaultRepaymentType', (v ?? 'equal_installments') as (typeof REPAYMENT_TYPES)[number])
-            }
-          >
-            <SelectTrigger id="defaultRepaymentType">
-              <SelectValue>
-                {(v) =>
-                  v === 'lump_sum'
-                    ? 'Lump sum at maturity'
-                    : v === 'custom'
-                      ? 'Custom schedule'
-                      : 'Equal installments'
+          <Controller
+            control={control}
+            name="defaultRepaymentType"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(v) =>
+                  field.onChange((v ?? 'equal_installments') as (typeof REPAYMENT_TYPES)[number])
                 }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="equal_installments">Equal installments</SelectItem>
-              <SelectItem value="lump_sum">Lump sum at maturity</SelectItem>
-              <SelectItem value="custom">Custom schedule</SelectItem>
-            </SelectContent>
-          </Select>
+              >
+                <SelectTrigger id="defaultRepaymentType">
+                  <SelectValue>
+                    {(v) =>
+                      v === 'lump_sum'
+                        ? 'Lump sum at maturity'
+                        : v === 'custom'
+                          ? 'Custom schedule'
+                          : 'Equal installments'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equal_installments">Equal installments</SelectItem>
+                  <SelectItem value="lump_sum">Lump sum at maturity</SelectItem>
+                  <SelectItem value="custom">Custom schedule</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
         </Field>
       </div>
 
       <div>
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Saving…' : 'Save settings'}
+          {isPending ? (
+            <>
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+              Saving…
+            </>
+          ) : (
+            'Save settings'
+          )}
         </Button>
       </div>
     </form>

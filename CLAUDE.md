@@ -54,10 +54,15 @@ Before starting any non-trivial task, read `STATUS.md` — it lists which phase 
 - **base-ui `Select`** — trigger defaults to `w-full`. To show a friendly label instead of the raw value: `<SelectValue>{v => LABELS[v]}</SelectValue>`. Passing `<SelectValue />` shows the raw enum.
 - **base-ui triggers** — no `asChild`. Use `render={<Button />}` on `AlertDialogTrigger`, `DropdownMenuTrigger`, etc.
 - **Filter bars** — use `src/components/reports/filter-field.tsx` (`FilterField` + `HiddenLabel`) with the recipe `flex flex-wrap gap-3 rounded-md border p-3 [&>*]:w-full sm:[&>*]:w-40`. Buttons override with `sm:!w-auto`.
-- **Money inputs** — use `<MoneyInput>` (has the `₱` prefix built in) instead of `<Input inputMode="decimal">`.
+- **Money inputs** — use `<MoneyInput>` (has the `₱` prefix + thousands separators as you type). It's controlled: pass `value` (raw digit string) + `onChange(rawString)` — the display formatting is internal. Inside a `useForm`, wrap with `<Controller>`; do NOT spread `register()` (types will not match, and the `setValueAs` path only runs on submit).
+- **base-ui `Select` inside a form** — always drive it through `<Controller>`; `watch()`/`setValue()` don't reliably re-render the base-ui trigger. Every `Select` in `loan-form.tsx`, `payment-dialog.tsx`, and `settings-form.tsx` follows this pattern — copy it for new forms.
 - **Password inputs** — use `<PasswordInput>` (has the show/hide eye toggle).
 - **Empty states** — use `<EmptyState icon={...} title="..." description="..." action={<Button>...</Button>} />` in list pages.
 - **Skeletons** — put a `loading.tsx` sibling to `page.tsx` in any route where the RSC pass is slow; use the shared `<Skeleton>` component.
+- **List search inputs** — use `<SearchWithHint>` (leading Search icon + trailing `⌘K` kbd chip); currently on `/borrowers` and `/loans`.
+- **Sortable columns** — use `<SortableHeader columnKey="..." currentSort={sort} onSort={onSort}>Label</SortableHeader>` with helpers `toggleSort` + `compareBy` from `src/components/ui/sortable-header.tsx`. Nulls always sort last regardless of direction.
+- **Recently viewed** — drop `<RecentTracker href="..." label="..." kind="borrower" | "loan" />` at the top of any detail page you want in the Cmd+K "Recent" list. Storage lives in `src/lib/recent-history.ts` (localStorage ring buffer, cap 8).
+- **Submit buttons** — show a `<Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />` next to the label while pending (Server Actions: `useFormStatus`; RHF: `useTransition` + `isPending`).
 
 ## Common commands
 

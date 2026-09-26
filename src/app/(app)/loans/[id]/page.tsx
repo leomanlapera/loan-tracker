@@ -18,6 +18,7 @@ import type {
   CustomScheduleEntry,
 } from '@/lib/engine/types'
 import { LoanActionBar } from './loan-action-bar'
+import { RecentTracker } from '@/components/recent-tracker'
 import { ScheduleTable } from './schedule-table'
 import { PaymentLog, type PaymentRow } from './payment-log'
 import { BalanceChart } from './balance-chart'
@@ -112,6 +113,12 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="space-y-6">
+      <RecentTracker
+        href={`/loans/${loan.id}`}
+        label={borrower?.full_name ?? 'Loan'}
+        hint={`Loan · ${formatPHP(Number(loan.principal))} @ ${formatRate(Number(loan.monthly_rate))}`}
+        kind="loan"
+      />
       <div>
         <BackLink href="/loans">Loans</BackLink>
       </div>

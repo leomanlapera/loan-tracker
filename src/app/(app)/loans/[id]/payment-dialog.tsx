@@ -2,10 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { Loader2 } from 'lucide-react'
 import {
   paymentSchema,
   PAYMENT_METHODS,
@@ -73,6 +74,7 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
     setError,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<PaymentInput>({
     resolver: zodResolver(paymentSchema),
@@ -149,7 +151,18 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
 
           <Field id="amount" label="Amount" error={errors.amount?.message}>
             <div className="flex gap-2">
-              <MoneyInput id="amount" {...register('amount')} />
+              <Controller
+                control={control}
+                name="amount"
+                render={({ field }) => (
+                  <MoneyInput
+                    id="amount"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -167,11 +180,13 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
               <Input id="paidOn" type="date" {...register('paidOn')} />
             </Field>
             <Field id="method" label="Method" error={errors.method?.message}>
+              <Controller
+                control={control}
+                name="method"
+                render={({ field }) => (
               <Select
-                value={watch('method')}
-                onValueChange={(v) =>
-                  setValue('method', (v ?? 'cash') as PaymentMethod, { shouldValidate: true })
-                }
+                value={field.value}
+                onValueChange={(v) => field.onChange((v ?? 'cash') as PaymentMethod)}
               >
                 <SelectTrigger id="method">
                   <SelectValue>
@@ -186,6 +201,8 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
                   ))}
                 </SelectContent>
               </Select>
+                )}
+              />
             </Field>
           </div>
 
@@ -202,7 +219,16 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? 'Saving…' : mode === 'create' ? 'Log payment' : 'Save changes'}
+              {isPending ? (
+                <>
+                  <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : mode === 'create' ? (
+                'Log payment'
+              ) : (
+                'Save changes'
+              )}
             </Button>
           </DialogFooter>
         </form>

@@ -79,17 +79,20 @@ pnpm test:integration
 - **Activity log** — every mutation captured by Postgres triggers (SECURITY DEFINER); filterable page with diff view
 
 **Product polish**
-- **Cmd/Ctrl + K** command palette — search borrowers and loans from anywhere
+- **Cmd/Ctrl + K** command palette — search borrowers and loans from anywhere; empty-query state shows a "Recent" section powered by a localStorage ring buffer
+- **⌘K hint chip** in `/borrowers` and `/loans` search inputs
 - **Global "Log payment"** button in the sidebar and dashboard header — inline loan picker, one-click flow
 - **Keyboard shortcuts** — `n` (context-aware new), `/` (focus search)
 - **Sidebar** — icon-collapse mode with sign-out, theme toggle, collapse control at bottom
 - **Dark mode** — light / dark / system, persisted, no FOUC
 - **Row actions** on `/loans` — `⋯` menu with Log payment / Open / Edit
-- **Toasts** for every save/edit/delete
+- **Sortable column headers** on `/loans` and `/borrowers` (nulls sort last)
+- **Onboarding empty state** on `/dashboard` when you have no loans yet
+- **Toasts** for every save/edit/delete; **loading spinners** in every submit button
 - **Skeletons** on every list and detail page
 - **Empty states** with a clear CTA
 - **Sticky table headers** on long tables (schedule, payment log, reports)
-- **Currency prefix (₱)** inside every money input; **eye toggle** on password fields
+- **Currency prefix (₱)** inside every money input, plus **thousands separators** as you type; **eye toggle** on password fields
 
 **Compliance & ops**
 - Public `/privacy` and `/terms` pages (RA 10173 notice, Civil Code Art. 1956/1959, RA 9474 disclaimer)

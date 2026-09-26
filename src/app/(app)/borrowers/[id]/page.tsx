@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { BorrowerForm } from '../borrower-form'
 import { BorrowerActions } from './borrower-actions'
+import { RecentTracker } from '@/components/recent-tracker'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
 import { loanStatusLabel } from '@/lib/labels'
 import { summarize } from '@/lib/engine/loan-summary'
@@ -80,6 +81,12 @@ export default async function BorrowerPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6">
+      <RecentTracker
+        href={`/borrowers/${borrower.id}`}
+        label={borrower.full_name}
+        hint="Borrower"
+        kind="borrower"
+      />
       <div>
         <BackLink href="/borrowers">Borrowers</BackLink>
       </div>

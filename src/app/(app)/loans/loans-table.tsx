@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { useState, useMemo } from 'react'
 import { CreditCard } from 'lucide-react'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { SearchWithHint } from '@/components/search-with-hint'
 import {
   Table,
   TableBody,
@@ -15,6 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  SortableHeader,
+  compareBy,
+  toggleSort,
+  type SortState,
+} from '@/components/ui/sortable-header'
 import { EmptyState } from '@/components/empty-state'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
 import { loanStatusLabel } from '@/lib/labels'
@@ -34,13 +40,26 @@ export interface LoanRow {
   isOverdue: boolean
 }
 
+type SortKey =
+  | 'borrower'
+  | 'startDate'
+  | 'principal'
+  | 'rate'
+  | 'balance'
+  | 'nextDue'
+  | 'status'
+
 export function LoansTable({ rows }: { rows: LoanRow[] }) {
   const [q, setQ] = useState('')
   const [showClosed, setShowClosed] = useState(false)
+  const [sort, setSort] = useState<SortState<SortKey> | null>({
+    key: 'nextDue',
+    direction: 'asc',
+  })
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase()
-    return rows.filter((r) => {
+    const base = rows.filter((r) => {
       if (
         !showClosed &&
         (r.status === 'paid' || r.status === 'cancelled' || r.status === 'written_off')
@@ -52,7 +71,13 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
         r.status.toLowerCase().includes(query)
       )
     })
-  }, [rows, q, showClosed])
+    if (!sort) return base
+    return [...base].sort((a, b) =>
+      compareBy(a, b, (r) => sortValue(r, sort.key), sort.direction),
+    )
+  }, [rows, q, showClosed, sort])
+
+  const onSort = (key: SortKey) => setSort((s) => toggleSort(s, key))
 
   if (rows.length === 0) {
     return (
@@ -74,11 +99,10 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
-        <Input
+        <SearchWithHint
           placeholder="Search by borrower or status"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="max-w-sm"
         />
         <label
           htmlFor="show-closed"
@@ -96,13 +120,41 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Borrower</TableHead>
-              <TableHead>Start</TableHead>
-              <TableHead>Principal</TableHead>
-              <TableHead>Rate</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
-              <TableHead>Next due</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>
+                <SortableHeader columnKey="borrower" currentSort={sort} onSort={onSort}>
+                  Borrower
+                </SortableHeader>
+              </TableHead>
+              <TableHead>
+                <SortableHeader columnKey="startDate" currentSort={sort} onSort={onSort}>
+                  Start
+                </SortableHeader>
+              </TableHead>
+              <TableHead>
+                <SortableHeader columnKey="principal" currentSort={sort} onSort={onSort}>
+                  Principal
+                </SortableHeader>
+              </TableHead>
+              <TableHead>
+                <SortableHeader columnKey="rate" currentSort={sort} onSort={onSort}>
+                  Rate
+                </SortableHeader>
+              </TableHead>
+              <TableHead className="text-right">
+                <SortableHeader columnKey="balance" currentSort={sort} onSort={onSort} align="right">
+                  Balance
+                </SortableHeader>
+              </TableHead>
+              <TableHead>
+                <SortableHeader columnKey="nextDue" currentSort={sort} onSort={onSort}>
+                  Next due
+                </SortableHeader>
+              </TableHead>
+              <TableHead>
+                <SortableHeader columnKey="status" currentSort={sort} onSort={onSort}>
+                  Status
+                </SortableHeader>
+              </TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
@@ -165,4 +217,23 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
       </div>
     </div>
   )
+}
+
+function sortValue(r: LoanRow, key: SortKey): string | number | null {
+  switch (key) {
+    case 'borrower':
+      return r.borrowerName.toLowerCase()
+    case 'startDate':
+      return r.startDate
+    case 'principal':
+      return Number(r.principal)
+    case 'rate':
+      return Number(r.monthlyRate)
+    case 'balance':
+      return Number(r.currentBalance)
+    case 'nextDue':
+      return r.nextDueDate
+    case 'status':
+      return r.status
+  }
 }

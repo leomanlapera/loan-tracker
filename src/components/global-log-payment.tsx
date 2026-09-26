@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from 'cn'
 import {
@@ -232,7 +232,7 @@ function LogPaymentDialog({
               <MoneyInput
                 id="amount"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={setAmount}
               />
               <Button
                 type="button"
@@ -313,7 +313,14 @@ function LogPaymentDialog({
             Cancel
           </Button>
           <Button type="button" onClick={submit} disabled={isPending || !loanId}>
-            {isPending ? 'Saving…' : 'Log payment'}
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                Saving…
+              </>
+            ) : (
+              'Log payment'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

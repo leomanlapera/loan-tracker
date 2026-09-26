@@ -2,10 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { Loader2 } from 'lucide-react'
 import {
   loanSchema,
   type LoanInput,
@@ -126,26 +127,38 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
           </p>
         ) : null}
 
-        <Field id="borrowerId" label="Borrower" error={errors.borrowerId?.message}>
-          <Select
-            value={values.borrowerId}
-            onValueChange={(v) => setValue('borrowerId', v ?? '', { shouldValidate: true })}
-          >
-            <SelectTrigger id="borrowerId">
-              <SelectValue placeholder="Choose a borrower">
-                {(v) =>
-                  borrowers.find((b) => b.id === String(v))?.name ?? 'Choose a borrower'
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {borrowers.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Field
+          id="borrowerId"
+          label="Borrower"
+          error={errors.borrowerId?.message}
+          hint={mode === 'edit' ? "A loan's borrower can't be changed after it's created." : undefined}
+        >
+          <Controller
+            control={control}
+            name="borrowerId"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(v) => field.onChange(v ?? '')}
+                disabled={mode === 'edit'}
+              >
+                <SelectTrigger id="borrowerId">
+                  <SelectValue placeholder="Choose a borrower">
+                    {(v) =>
+                      borrowers.find((b) => b.id === String(v))?.name ?? 'Choose a borrower'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {borrowers.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -155,10 +168,18 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
             error={errors.principal?.message}
             hint={editingLocked?.principal ? 'Locked because payments exist.' : undefined}
           >
-            <MoneyInput
-              id="principal"
-              disabled={editingLocked?.principal}
-              {...register('principal')}
+            <Controller
+              control={control}
+              name="principal"
+              render={({ field }) => (
+                <MoneyInput
+                  id="principal"
+                  disabled={editingLocked?.principal}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
             />
           </Field>
           <Field
@@ -223,67 +244,85 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
             error={errors.interestMethod?.message}
             hint={editingLocked?.interestMethod ? 'Locked because payments exist.' : undefined}
           >
-            <Select
-              value={values.interestMethod}
-              onValueChange={(v) =>
-                setValue('interestMethod', v as (typeof INTEREST_METHODS)[number])
-              }
-              disabled={editingLocked?.interestMethod}
-            >
-              <SelectTrigger id="interestMethod">
-                <SelectValue>{(v) => (v === 'simple' ? 'Simple' : 'Compound')}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {INTEREST_METHODS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m === 'compound' ? 'Compound' : 'Simple'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="interestMethod"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(v) =>
+                    field.onChange((v ?? 'compound') as (typeof INTEREST_METHODS)[number])
+                  }
+                  disabled={editingLocked?.interestMethod}
+                >
+                  <SelectTrigger id="interestMethod">
+                    <SelectValue>{(v) => (v === 'simple' ? 'Simple' : 'Compound')}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTEREST_METHODS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m === 'compound' ? 'Compound' : 'Simple'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
           <Field id="repaymentType" label="Repayment type" error={errors.repaymentType?.message}>
-            <Select
-              value={values.repaymentType}
-              onValueChange={(v) =>
-                setValue('repaymentType', v as (typeof REPAYMENT_TYPES)[number])
-              }
-            >
-              <SelectTrigger id="repaymentType">
-                <SelectValue>
-                  {(v) =>
-                    v === 'lump_sum'
-                      ? 'Lump sum at maturity'
-                      : v === 'custom'
-                        ? 'Custom schedule'
-                        : 'Equal installments'
+            <Controller
+              control={control}
+              name="repaymentType"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(v) =>
+                    field.onChange((v ?? 'equal_installments') as (typeof REPAYMENT_TYPES)[number])
                   }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="equal_installments">Equal installments</SelectItem>
-                <SelectItem value="lump_sum">Lump sum at maturity</SelectItem>
-                <SelectItem value="custom">Custom schedule</SelectItem>
-              </SelectContent>
-            </Select>
+                >
+                  <SelectTrigger id="repaymentType">
+                    <SelectValue>
+                      {(v) =>
+                        v === 'lump_sum'
+                          ? 'Lump sum at maturity'
+                          : v === 'custom'
+                            ? 'Custom schedule'
+                            : 'Equal installments'
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="equal_installments">Equal installments</SelectItem>
+                    <SelectItem value="lump_sum">Lump sum at maturity</SelectItem>
+                    <SelectItem value="custom">Custom schedule</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
           <Field id="afterMaturity" label="After maturity" error={errors.afterMaturity?.message}>
-            <Select
-              value={values.afterMaturity}
-              onValueChange={(v) =>
-                setValue('afterMaturity', v as (typeof AFTER_MATURITY)[number])
-              }
-            >
-              <SelectTrigger id="afterMaturity">
-                <SelectValue>
-                  {(v) => (v === 'stop_accruing' ? 'Stop accruing' : 'Keep accruing')}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="continue_accruing">Keep accruing</SelectItem>
-                <SelectItem value="stop_accruing">Stop accruing</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="afterMaturity"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(v) =>
+                    field.onChange((v ?? 'continue_accruing') as (typeof AFTER_MATURITY)[number])
+                  }
+                >
+                  <SelectTrigger id="afterMaturity">
+                    <SelectValue>
+                      {(v) => (v === 'stop_accruing' ? 'Stop accruing' : 'Keep accruing')}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="continue_accruing">Keep accruing</SelectItem>
+                    <SelectItem value="stop_accruing">Stop accruing</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
         </div>
 
@@ -297,8 +336,16 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
               {fields.map((f, i) => (
                 <div key={f.id} className="flex items-center gap-2">
                   <span className="text-muted-foreground w-10 text-xs">#{i + 1}</span>
-                  <MoneyInput
-                    {...register(`customSchedule.${i}.plannedAmount` as const)}
+                  <Controller
+                    control={control}
+                    name={`customSchedule.${i}.plannedAmount` as const}
+                    render={({ field }) => (
+                      <MoneyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
                   />
                 </div>
               ))}
@@ -327,7 +374,7 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
               setValue('agreementInWriting', v === true, { shouldValidate: true })
             }
           />
-          <label htmlFor="agreementInWriting" className="text-sm">
+          <label htmlFor="agreementInWriting" className="text-xs">
             <span className="font-medium">Interest terms are in a signed written agreement.</span>{' '}
             <span className="text-muted-foreground">
               Required by Civil Code Art. 1956/1959 for interest and compounding to be enforceable.
@@ -342,7 +389,16 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
 
         <div className="flex gap-3">
           <Button type="submit" disabled={isPending}>
-            {isPending ? 'Saving…' : mode === 'create' ? 'Create loan' : 'Save changes'}
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                Saving…
+              </>
+            ) : mode === 'create' ? (
+              'Create loan'
+            ) : (
+              'Save changes'
+            )}
           </Button>
           <Button type="button" variant="ghost" onClick={() => router.back()}>
             Cancel
