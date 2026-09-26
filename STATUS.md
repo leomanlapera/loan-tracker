@@ -4,7 +4,7 @@ _Last updated: 2026-09-26_
 
 ## Current phase
 
-**Phase 4 — Payments & Loan Detail: ✅ Complete**
+**Phase 5 — Dashboard & Reports: ✅ Complete**
 
 See [`phases/README.md`](./phases/README.md) for the full plan.
 
@@ -17,37 +17,46 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 | 2 | [Auth & Data Model](./phases/phase-02-auth-data.md) | ✅ Complete |
 | 3 | [Borrower & Loan CRUD](./phases/phase-03-borrowers-loans.md) | ✅ Complete |
 | 4 | [Payments & Loan Detail](./phases/phase-04-payments-detail.md) | ✅ Complete |
-| 5 | [Dashboard & Reports](./phases/phase-05-dashboard-reports.md) | ⏳ Next |
-| 6 | [Activity Log & Settings](./phases/phase-06-activity-settings.md) | ⏳ Pending |
+| 5 | [Dashboard & Reports](./phases/phase-05-dashboard-reports.md) | ✅ Complete |
+| 6 | [Activity Log & Settings](./phases/phase-06-activity-settings.md) | ⏳ Next |
 | 7 | [Polish, QA & Launch](./phases/phase-07-launch.md) | ⏳ Pending |
 | 8 | [Phase 2 Backlog](./phases/phase-08-post-mvp.md) | 📌 Post-MVP |
 
-## Phase 4 highlights
+## Phase 5 highlights
 
-**Payment logging**
-- `src/lib/validation/payment.ts` — Zod schema for amount (>0, 2dp), paid_on (not future), method enum, reference, note
-- `src/app/(app)/loans/payment-actions.ts` — Server Actions
-  - `createPayment` — engine-based **overpayment rejection** with exact payoff in the error
-  - `updatePayment` — same guard, excludes the row being edited
-  - `softDeletePayment` / `restorePayment` — flip `deleted_at`, recompute balance, sync loan status
-  - `computePayoff` — used by the "Pay off" shortcut button
-  - `recomputeAndSyncStatus` runs after every mutation → sets `loans.status = paid` when balance hits ₱0.00, back to `active` on restore
-- Payment dialog (`payment-dialog.tsx`) — reused for both new and edit
-  - **"Pay off" button** fills the exact engine payoff for the selected date
-  - Field-level errors from Zod, form-level error banner for engine rejections
+**Engine additions**
+- `src/lib/engine/allocate.ts` — new `allocatePayments()` returns per-payment `{toInterest, toPrincipal, periodIndex}`. Within a period, earlier payments consume interest first.
+- Vitest: 3 new cases (matches PRD Case 2 allocation to the centavo, reconciles totals with `compute().interestEarnedToDate`, respects payment order inside a period)
 
-**Loan detail page** (`/loans/[id]`)
-- Summary tiles: current balance, total paid, interest earned, next due (or payoff amount when no next due)
-- **Full schedule table** with per-period status chips: `paid` / `partial` / `unpaid` / `upcoming`, plus overdue badge
-- Payment log with inline edit + soft delete + restore, `Show deleted` toggle to reveal history
-- **Recharts balance-over-time chart** — compound vs simple curves computed from the same payment set (solid = this loan's method, dashed = the other for comparison)
-- Action bar: Log payment · Pay off · Edit · Write off · Cancel (blocked when payments exist; use write off instead) · Reopen for non-paid closed loans
+**CSV utility** — `src/lib/csv.ts`
+- RFC 4180 escaping, ISO dates, numbers pass through unquoted, BOM prefix so Excel opens en-PH characters cleanly
+- `csvResponse(filename, body)` for route handlers; 6 Vitest cases
 
-**Engine reuse**
-- Both server-side compute (page load, action validation) and client-side chart projections share `src/lib/engine/`. Zero divergence.
-- Preview on `/loans/new` (Phase 3), server summary on `/dashboard` and `/loans`, and the new schedule + chart all read the same schedule structure.
+**Dashboard** (`/dashboard`) — every PRD §5.6 tile + list
+- Active loans, principal lent (active), total outstanding, overdue count + amount
+- Interest earned this month / this year / all time
+- Collections this month
+- Due-in-next-7-days list (top 5, linked to loan pages)
+- Recent payments list (top 5, borrower + date + method + amount)
+- Overdue banner links to aging report
 
-## What's shipped (Phases 0–4)
+**Reports** — hub at `/reports` + 6 report pages + 6 CSV export routes
+- Portfolio summary — per-loan snapshot at "as of" end date with balance, total paid, interest earned
+- Borrower statement — pick a borrower, get full schedule per loan + payment history in range
+- Collections — payments received in range, grouped by day/week/month toggle AND by method, with per-column and per-row totals
+- Interest income — per-month interest portion of payments received, via the new allocation helper
+- Aging — 1-30 / 31-60 / 61-90 / 90+ bucketing on the oldest days-past-due per loan
+- Write-offs — loans with status `written_off` in range, showing loss (balance at write-off)
+
+**Report infrastructure**
+- `src/lib/reports/loans.ts` — `loadAllLoans()` bundles loans + borrower names + payments + custom schedules in 4 queries. `summarizeAt(loan, asOf)` and `activePayments(loan, cutoff)` helpers reused across every report.
+- `src/lib/reports/date-range.ts` — safe `parseDateRange()` from search params with fallbacks
+- `src/lib/reports/{collections,interest,aging}.ts` — shared bucketing logic (page + CSV both call the same function so numbers match)
+- `DateRangeForm` client component — uncontrolled inputs, key on `${from}-${to}` so revalidation resets cleanly
+
+**Nav** — Reports link added to the app-shell nav.
+
+## What's shipped (Phases 0–5)
 
 **Framework & tooling**
 - Next.js 16 App Router + Turbopack + TypeScript
@@ -55,32 +64,32 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - Runtime: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `@hookform/resolvers`, `server-only`
 - Dev: Vitest 3, jsdom 24, Playwright, Prettier, Supabase CLI (workspace dep), `ws` for Node 20 realtime shim
 
-**Engine** — 30 Vitest cases (PRD §6.6 to the centavo) + payoff, overdue, partial re-amortization, custom schedule, after-maturity behaviors
+**Engine** — 39 Vitest cases (30 core + 3 allocation + 6 CSV)
 
 **Supabase** — 7 migrations applied, RLS enforced (17/17 integration tests), tightened payments policy, generated database types
 
-**Routes** (14 total, mostly server components)
+**Routes** (26 total, all dynamic)
 - Public: `/`, `/login`, `/sign-up`, `/reset-password`, `/reset-password/update`, `/auth/callback`
-- Authed: `/dashboard`, `/borrowers`, `/borrowers/new`, `/borrowers/[id]`, `/loans`, `/loans/new`, `/loans/[id]`, `/loans/[id]/edit`
+- Authed pages: `/dashboard`, `/borrowers`, `/borrowers/new`, `/borrowers/[id]`, `/loans`, `/loans/new`, `/loans/[id]`, `/loans/[id]/edit`, `/reports`, `/reports/{portfolio,statement,collections,interest,aging,write-offs}`
+- CSV route handlers: `/reports/{portfolio,statement,collections,interest,aging,write-offs}/export`
 
 ## Verified
 
-- ✅ `pnpm lint` (React Compiler notes on RHF `watch()` — standard, non-blocking)
+- ✅ `pnpm lint` (2 non-blocking React Compiler notes on RHF `watch()` — standard usage)
 - ✅ `pnpm typecheck`
-- ✅ `pnpm test` (30/30)
-- ✅ `pnpm build` — 14 routes, all dynamic (middleware attached)
+- ✅ `pnpm test` (39/39)
+- ✅ `pnpm build` — 26 routes, all dynamic
 
 ## Known deferred
 
-- Reports (portfolio, borrower statement, collections, interest income, aging, write-offs) — Phase 5
-- Activity log triggers + settings page + data export — Phase 6
+- Activity log triggers, settings page, data export — Phase 6
 - Interest-only repayment type — Phase 8 backlog
 - Late-payment penalty rate/fee (PRD §12 Q2) — still open
 - Vercel project not linked yet
 
 ## Setup to-dos for the maintainer
 
-None new for Phase 4 (no schema changes). Still pending from earlier phases:
+Nothing new for Phase 5. Still pending from earlier phases:
 - Supabase Dashboard → Auth → URL Configuration → Site URL: `http://localhost:3000` (dev) and eventual production URL
 - Vercel — `vercel link` and env vars when you deploy
 
@@ -90,4 +99,4 @@ Not configured. Quality checks run locally via `pnpm lint`, `pnpm typecheck`, `p
 
 ## Up next
 
-**Phase 5 — Dashboard & Reports.** Real dashboard tiles (this month collections, this year interest, next-7-days due list, recent payments) + all six PRD §5.7 reports with date filters and CSV export.
+**Phase 6 — Activity Log & Settings.** Postgres triggers write to `activity_log` on every borrower/loan/payment change (SECURITY DEFINER for RLS). Read-only `/activity` page with entity + date filters. Settings page for display name, default grace period, default interest method, default repayment type. RA 10173 data export (ZIP of CSVs).

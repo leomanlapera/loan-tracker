@@ -1,4 +1,5 @@
 export { compute, validatePayment } from './compute'
+export { allocatePayments, type PaymentAllocation } from './allocate'
 export { pmt } from './pmt'
 export { dueDateOf } from './period'
 export { money, D, ZERO } from './money'

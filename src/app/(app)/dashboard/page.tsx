@@ -1,65 +1,118 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { compute } from '@/lib/engine/compute'
+import {
+  format,
+  startOfMonth,
+  startOfYear,
+  isWithinInterval,
+  addDays,
+  isAfter,
+} from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { formatPHP } from '@/lib/format'
-import type { InterestMethod, RepaymentType, AfterMaturity } from '@/lib/engine/types'
+import { formatDate, formatPHP } from '@/lib/format'
+import { loadAllLoans, summarizeAt, activePayments } from '@/lib/reports/loans'
+import { allocatePayments } from '@/lib/engine/allocate'
+import { paymentMethodLabels, type PaymentMethod } from '@/lib/validation/payment'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const loans = await loadAllLoans()
   const now = new Date()
+  const monthStart = startOfMonth(now)
+  const yearStart = startOfYear(now)
+  const in7 = addDays(now, 7)
 
-  const [{ data: loans = [] }, { data: payments = [] }] = await Promise.all([
-    supabase
-      .from('loans')
-      .select(
-        'id, principal, monthly_rate, tenure_months, start_date, interest_method, repayment_type, after_maturity, grace_days, status',
-      ),
-    supabase.from('payments').select('loan_id, amount, paid_on').is('deleted_at', null),
-  ])
-
-  const paymentsByLoan = new Map<string, { amount: number; paid_on: string }[]>()
-  for (const p of payments ?? []) {
-    const list = paymentsByLoan.get(p.loan_id) ?? []
-    list.push({ amount: Number(p.amount), paid_on: p.paid_on })
-    paymentsByLoan.set(p.loan_id, list)
-  }
-
+  let activeCount = 0
   let totalPrincipalActive = 0
   let totalOutstanding = 0
-  let interestEarnedAllTime = 0
-  let activeCount = 0
+  let interestAllTime = 0
+  let interestThisYear = 0
+  let interestThisMonth = 0
+  let collectionsThisMonth = 0
   let overdueCount = 0
+  let overdueAmount = 0
+  const upcoming: {
+    loanId: string
+    borrower: string
+    dueDate: Date
+    amount: string
+  }[] = []
+  const recentPayments: {
+    loanId: string
+    borrower: string
+    paidOn: string
+    amount: number
+    method: PaymentMethod
+  }[] = []
 
-  for (const loan of loans ?? []) {
+  for (const loan of loans) {
+    const summary = summarizeAt(loan, now)
+    if (!summary) continue
+
+    interestAllTime += Number(summary.interestEarnedToDate.toFixed(2))
+
+    if (loan.status === 'active') {
+      activeCount++
+      totalPrincipalActive += loan.principal
+      totalOutstanding += Number(summary.currentBalance.toFixed(2))
+      if (summary.schedule.some((r) => r.isOverdue)) {
+        overdueCount++
+        for (const row of summary.schedule) {
+          if (!row.isOverdue) continue
+          overdueAmount += Number(row.scheduledPayment.minus(row.actualPayment).toFixed(2))
+        }
+      }
+      if (summary.nextDueDate && !isAfter(summary.nextDueDate, in7)) {
+        upcoming.push({
+          loanId: loan.id,
+          borrower: loan.borrower_name,
+          dueDate: summary.nextDueDate,
+          amount: summary.nextDueAmount.toFixed(2),
+        })
+      }
+    }
+
+    // Per-payment allocation for month/year interest and this-month collections.
     try {
-      const out = compute({
-        loan: {
+      const allocs = allocatePayments(
+        {
           principal: String(loan.principal),
           monthlyRate: String(loan.monthly_rate),
           tenureMonths: loan.tenure_months,
           startDate: new Date(`${loan.start_date}T00:00:00Z`),
-          interestMethod: loan.interest_method as InterestMethod,
-          repaymentType: loan.repayment_type as RepaymentType,
-          afterMaturity: loan.after_maturity as AfterMaturity,
+          interestMethod: loan.interest_method,
+          repaymentType: loan.repayment_type,
+          afterMaturity: loan.after_maturity,
           graceDays: loan.grace_days,
+          customSchedule: loan.customSchedule,
         },
-        payments: (paymentsByLoan.get(loan.id) ?? []).map((p) => ({
-          amount: p.amount,
-          paidOn: new Date(`${p.paid_on}T00:00:00Z`),
-        })),
-        asOf: now,
-      })
-      interestEarnedAllTime += Number(out.interestEarnedToDate.toFixed(2))
-      if (loan.status === 'active') {
-        activeCount++
-        totalPrincipalActive += Number(loan.principal)
-        totalOutstanding += Number(out.currentBalance.toFixed(2))
-        if (out.schedule.some((r) => r.isOverdue)) overdueCount++
+        activePayments(loan, now),
+      )
+      for (const a of allocs) {
+        if (isWithinInterval(a.paidOn, { start: yearStart, end: now })) {
+          interestThisYear += Number(a.toInterest.toFixed(2))
+        }
+        if (isWithinInterval(a.paidOn, { start: monthStart, end: now })) {
+          interestThisMonth += Number(a.toInterest.toFixed(2))
+          collectionsThisMonth += Number(a.amount.toFixed(2))
+        }
       }
     } catch {}
+
+    for (const p of loan.payments) {
+      if (p.deleted_at) continue
+      recentPayments.push({
+        loanId: loan.id,
+        borrower: loan.borrower_name,
+        paidOn: p.paid_on,
+        amount: p.amount,
+        method: p.method as PaymentMethod,
+      })
+    }
   }
+
+  upcoming.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+  recentPayments.sort((a, b) => (a.paidOn < b.paidOn ? 1 : -1))
+  const recent = recentPayments.slice(0, 5)
 
   return (
     <div className="space-y-6">
@@ -79,12 +132,80 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Active loans" value={String(activeCount)} />
-        <Tile label="Principal lent (active)" value={formatPHP(totalPrincipalActive)} />
+        <Tile label="Principal lent" value={formatPHP(totalPrincipalActive)} />
         <Tile label="Total outstanding" value={formatPHP(totalOutstanding)} />
-        <Tile label="Interest earned" value={formatPHP(interestEarnedAllTime)} />
+        <Tile
+          label="Overdue"
+          value={String(overdueCount)}
+          hint={overdueCount > 0 ? formatPHP(overdueAmount) : undefined}
+        />
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Tile label="Interest this month" value={formatPHP(interestThisMonth)} />
+        <Tile label="Interest this year" value={formatPHP(interestThisYear)} />
+        <Tile label="Interest earned all time" value={formatPHP(interestAllTime)} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Tile label="Collections this month" value={formatPHP(collectionsThisMonth)} full />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-muted-foreground text-sm font-medium">
+              Due in the next 7 days
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {upcoming.length === 0 ? (
+              <p className="text-muted-foreground">Nothing due this week.</p>
+            ) : (
+              upcoming.slice(0, 5).map((u) => (
+                <div key={u.loanId} className="flex justify-between gap-3">
+                  <Link href={`/loans/${u.loanId}`} className="hover:underline">
+                    {u.borrower}
+                  </Link>
+                  <div className="text-muted-foreground text-right">
+                    <div>{formatDate(u.dueDate)}</div>
+                    <div className="tabular-nums">{formatPHP(u.amount)}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-muted-foreground text-sm font-medium">
+            Recent payments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recent.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No payments logged yet.</p>
+          ) : (
+            <div className="divide-y">
+              {recent.map((p, i) => (
+                <div key={i} className="flex items-center justify-between py-2 text-sm">
+                  <Link href={`/loans/${p.loanId}`} className="hover:underline">
+                    {p.borrower}
+                  </Link>
+                  <div className="text-muted-foreground flex items-center gap-4 text-right">
+                    <span>{format(new Date(p.paidOn), 'MMM d')}</span>
+                    <span>{paymentMethodLabels[p.method]}</span>
+                    <span className="tabular-nums">{formatPHP(p.amount)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {overdueCount > 0 ? (
         <Card>
           <CardHeader>
@@ -93,8 +214,8 @@ export default async function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Link href="/loans" className="text-sm underline">
-              Open the loans list
+            <Link href="/reports/aging" className="text-sm underline">
+              Open the aging report
             </Link>
           </CardContent>
         </Card>
@@ -103,14 +224,25 @@ export default async function DashboardPage() {
   )
 }
 
-function Tile({ label, value }: { label: string; value: string }) {
+function Tile({
+  label,
+  value,
+  hint,
+  full,
+}: {
+  label: string
+  value: string
+  hint?: string
+  full?: boolean
+}) {
   return (
-    <Card>
+    <Card className={full ? 'sm:col-span-1' : undefined}>
       <CardHeader>
         <CardTitle className="text-muted-foreground text-sm font-medium">{label}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-semibold tabular-nums">{value}</div>
+        {hint ? <div className="text-muted-foreground mt-1 text-sm tabular-nums">{hint}</div> : null}
       </CardContent>
     </Card>
   )
