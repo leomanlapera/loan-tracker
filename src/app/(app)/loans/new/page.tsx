@@ -1,6 +1,7 @@
-import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { Card, CardContent } from '@/components/ui/card'
 import { LoanForm, type BorrowerOption } from '../loan-form'
 import type { InterestMethod, RepaymentType } from '@/lib/engine/types'
 
@@ -41,9 +42,7 @@ export default async function NewLoanPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/loans" className="text-muted-foreground text-sm hover:underline">
-          ← Loans
-        </Link>
+        <BackLink href="/loans">Loans</BackLink>
       </div>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New loan</h1>
@@ -51,16 +50,20 @@ export default async function NewLoanPage({
           Preview updates as you type. Numbers become real once you log payments.
         </p>
       </div>
-      <LoanForm
-        mode="create"
-        borrowers={options}
-        initial={{
-          borrowerId: params.borrowerId,
-          graceDays: profile?.default_grace_days ?? 0,
-          interestMethod: (profile?.default_interest_method ?? 'compound') as InterestMethod,
-          repaymentType: (profile?.default_repayment_type ?? 'equal_installments') as RepaymentType,
-        }}
-      />
+      <Card>
+        <CardContent>
+          <LoanForm
+            mode="create"
+            borrowers={options}
+            initial={{
+              borrowerId: params.borrowerId,
+              graceDays: profile?.default_grace_days ?? 0,
+              interestMethod: (profile?.default_interest_method ?? 'compound') as InterestMethod,
+              repaymentType: (profile?.default_repayment_type ?? 'equal_installments') as RepaymentType,
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

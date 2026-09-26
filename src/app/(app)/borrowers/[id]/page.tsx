@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +16,7 @@ import {
 import { BorrowerForm } from '../borrower-form'
 import { BorrowerActions } from './borrower-actions'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
+import { loanStatusLabel } from '@/lib/labels'
 import { summarize } from '@/lib/engine/loan-summary'
 import type { InterestMethod, RepaymentType, AfterMaturity } from '@/lib/engine/types'
 
@@ -79,9 +81,7 @@ export default async function BorrowerPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/borrowers" className="text-muted-foreground text-sm hover:underline">
-          ← Borrowers
-        </Link>
+        <BackLink href="/borrowers">Borrowers</BackLink>
       </div>
 
       <div className="flex items-start justify-between gap-3">
@@ -142,7 +142,7 @@ export default async function BorrowerPage({ params }: { params: Promise<{ id: s
                           {summary ? formatPHP(summary.currentBalance.toFixed(2)) : '—'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{loan.status}</Badge>
+                          <Badge variant="outline">{loanStatusLabel(loan.status)}</Badge>
                         </TableCell>
                       </TableRow>
                     ))}

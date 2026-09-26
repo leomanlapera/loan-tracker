@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import { format } from 'date-fns'
 import {
   loanSchema,
@@ -16,6 +17,7 @@ import {
 import { createLoan, updateLoan } from './actions'
 import { Field } from '@/components/form/field'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/ui/money-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -106,8 +108,10 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
           }
         }
         setFormError(result.error)
+        toast.error(result.error)
         return
       }
+      toast.success(mode === 'create' ? 'Loan created' : 'Loan saved')
       router.push(mode === 'create' ? `/borrowers/${data.borrowerId}` : `/loans/${loanId}`)
       router.refresh()
     })
@@ -128,7 +132,11 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
             onValueChange={(v) => setValue('borrowerId', v ?? '', { shouldValidate: true })}
           >
             <SelectTrigger id="borrowerId">
-              <SelectValue placeholder="Choose a borrower" />
+              <SelectValue placeholder="Choose a borrower">
+                {(v) =>
+                  borrowers.find((b) => b.id === String(v))?.name ?? 'Choose a borrower'
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {borrowers.map((b) => (
@@ -143,13 +151,12 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             id="principal"
-            label="Principal (₱)"
+            label="Principal"
             error={errors.principal?.message}
             hint={editingLocked?.principal ? 'Locked because payments exist.' : undefined}
           >
-            <Input
+            <MoneyInput
               id="principal"
-              inputMode="decimal"
               disabled={editingLocked?.principal}
               {...register('principal')}
             />
@@ -224,7 +231,7 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
               disabled={editingLocked?.interestMethod}
             >
               <SelectTrigger id="interestMethod">
-                <SelectValue />
+                <SelectValue>{(v) => (v === 'simple' ? 'Simple' : 'Compound')}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {INTEREST_METHODS.map((m) => (
@@ -243,7 +250,15 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
               }
             >
               <SelectTrigger id="repaymentType">
-                <SelectValue />
+                <SelectValue>
+                  {(v) =>
+                    v === 'lump_sum'
+                      ? 'Lump sum at maturity'
+                      : v === 'custom'
+                        ? 'Custom schedule'
+                        : 'Equal installments'
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="equal_installments">Equal installments</SelectItem>
@@ -260,7 +275,9 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
               }
             >
               <SelectTrigger id="afterMaturity">
-                <SelectValue />
+                <SelectValue>
+                  {(v) => (v === 'stop_accruing' ? 'Stop accruing' : 'Keep accruing')}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="continue_accruing">Keep accruing</SelectItem>
@@ -280,8 +297,7 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
               {fields.map((f, i) => (
                 <div key={f.id} className="flex items-center gap-2">
                   <span className="text-muted-foreground w-10 text-xs">#{i + 1}</span>
-                  <Input
-                    inputMode="decimal"
+                  <MoneyInput
                     {...register(`customSchedule.${i}.plannedAmount` as const)}
                   />
                 </div>

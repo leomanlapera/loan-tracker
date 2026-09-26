@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import { settingsSchema, type SettingsInput } from '@/lib/validation/settings'
 import { updateSettings } from './actions'
 import { Field } from '@/components/form/field'
@@ -50,9 +51,11 @@ export function SettingsForm({ initial }: Props) {
           }
         }
         setState({ ok: false, message: result.error })
+        toast.error(result.error)
         return
       }
       setState({ ok: true, message: result.message ?? 'Saved.' })
+      toast.success(result.message ?? 'Settings saved')
       router.refresh()
     })
   })
@@ -99,7 +102,7 @@ export function SettingsForm({ initial }: Props) {
             }
           >
             <SelectTrigger id="defaultInterestMethod">
-              <SelectValue />
+              <SelectValue>{(v) => (v === 'simple' ? 'Simple' : 'Compound')}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {INTEREST_METHODS.map((m) => (
@@ -123,7 +126,15 @@ export function SettingsForm({ initial }: Props) {
             }
           >
             <SelectTrigger id="defaultRepaymentType">
-              <SelectValue />
+              <SelectValue>
+                {(v) =>
+                  v === 'lump_sum'
+                    ? 'Lump sum at maturity'
+                    : v === 'custom'
+                      ? 'Custom schedule'
+                      : 'Equal installments'
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="equal_installments">Equal installments</SelectItem>

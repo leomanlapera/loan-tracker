@@ -1,5 +1,6 @@
 import type { PeriodRow } from '@/lib/engine/types'
 import { formatDate, formatPHP } from '@/lib/format'
+import { periodStatusLabels } from '@/lib/labels'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -17,12 +18,7 @@ const statusVariant: Record<PeriodRow['status'], 'default' | 'secondary' | 'dest
   upcoming: 'outline',
 }
 
-const statusLabel: Record<PeriodRow['status'], string> = {
-  paid: 'paid',
-  partial: 'partial',
-  unpaid: 'unpaid',
-  upcoming: 'upcoming',
-}
+const statusLabel = periodStatusLabels
 
 export function ScheduleTable({ rows }: { rows: PeriodRow[] }) {
   return (
@@ -63,7 +59,7 @@ export function ScheduleTable({ rows }: { rows: PeriodRow[] }) {
               <TableCell>
                 <div className="flex flex-wrap items-center gap-1">
                   <Badge variant={statusVariant[r.status]}>{statusLabel[r.status]}</Badge>
-                  {r.isOverdue ? <Badge variant="destructive">overdue</Badge> : null}
+                  {r.isOverdue ? <Badge variant="destructive">Overdue</Badge> : null}
                 </div>
               </TableCell>
             </TableRow>

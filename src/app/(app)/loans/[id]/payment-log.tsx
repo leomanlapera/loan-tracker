@@ -2,11 +2,13 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { formatDate, formatPHP } from '@/lib/format'
 import { paymentMethodLabels, type PaymentMethod } from '@/lib/validation/payment'
 import { softDeletePayment, restorePayment } from '../payment-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -15,6 +17,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { PaymentDialog } from './payment-dialog'
 
 export interface PaymentRow {
@@ -37,7 +50,6 @@ export function PaymentLog({ loanId, payments }: Props) {
   const [showDeleted, setShowDeleted] = useState(false)
   const [editing, setEditing] = useState<PaymentRow | null>(null)
   const [pending, startTransition] = useTransition()
-  const [rowError, setRowError] = useState<string | null>(null)
 
   const visible = useMemo(
     () => (showDeleted ? payments : payments.filter((p) => !p.deletedAt)),
@@ -46,32 +58,40 @@ export function PaymentLog({ loanId, payments }: Props) {
 
   const doDelete = (paymentId: string) =>
     startTransition(async () => {
-      setRowError(null)
       const r = await softDeletePayment(loanId, paymentId)
-      if (!r.ok) setRowError(r.error)
-      else router.refresh()
+      if (!r.ok) {
+        toast.error(r.error)
+      } else {
+        toast.success('Payment deleted')
+        router.refresh()
+      }
     })
 
   const doRestore = (paymentId: string) =>
     startTransition(async () => {
-      setRowError(null)
       const r = await restorePayment(loanId, paymentId)
-      if (!r.ok) setRowError(r.error)
-      else router.refresh()
+      if (!r.ok) {
+        toast.error(r.error)
+      } else {
+        toast.success('Payment restored')
+        router.refresh()
+      }
     })
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-muted-foreground flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <label
+          htmlFor="show-deleted"
+          className="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm select-none"
+        >
+          <Checkbox
+            id="show-deleted"
             checked={showDeleted}
-            onChange={(e) => setShowDeleted(e.target.checked)}
+            onCheckedChange={(v) => setShowDeleted(v === true)}
           />
           Show deleted
         </label>
-        {rowError ? <span className="text-destructive text-xs">{rowError}</span> : null}
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -107,14 +127,17 @@ export function PaymentLog({ loanId, payments }: Props) {
                   </TableCell>
                   <TableCell>{paymentMethodLabels[p.method]}</TableCell>
                   <TableCell className="text-sm">
-                    <div className="text-muted-foreground">
-                      {p.referenceNo || '—'}
-                    </div>
+                    <div className="text-muted-foreground">{p.referenceNo || '—'}</div>
                     {p.note ? <div className="text-xs">{p.note}</div> : null}
                   </TableCell>
                   <TableCell className="text-right">
                     {p.deletedAt ? (
-                      <Button size="sm" variant="outline" disabled={pending} onClick={() => doRestore(p.id)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() => doRestore(p.id)}
+                      >
                         Restore
                       </Button>
                     ) : (
@@ -122,14 +145,29 @@ export function PaymentLog({ loanId, payments }: Props) {
                         <Button size="sm" variant="ghost" onClick={() => setEditing(p)}>
                           Edit
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={pending}
-                          onClick={() => doDelete(p.id)}
-                        >
-                          Delete
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger
+                            disabled={pending}
+                            render={<Button size="sm" variant="destructive" />}
+                          >
+                            Delete
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this payment?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Soft-delete — it stays in history and can be restored from &quot;Show
+                                deleted&quot;. Balances and status recompute immediately.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => doDelete(p.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                   </TableCell>

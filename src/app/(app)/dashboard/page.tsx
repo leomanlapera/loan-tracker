@@ -9,6 +9,7 @@ import {
 } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { GlobalLogPaymentButton } from '@/components/global-log-payment'
 import { formatDate, formatPHP } from '@/lib/format'
 import { loadAllLoans, summarizeAt, activePayments } from '@/lib/reports/loans'
 import { allocatePayments } from '@/lib/engine/allocate'
@@ -30,6 +31,12 @@ export default async function DashboardPage() {
   let collectionsThisMonth = 0
   let overdueCount = 0
   let overdueAmount = 0
+  const overdueLoans: {
+    loanId: string
+    borrower: string
+    daysPastDue: number
+    amount: string
+  }[] = []
   const upcoming: {
     loanId: string
     borrower: string
@@ -56,10 +63,25 @@ export default async function DashboardPage() {
       totalOutstanding += Number(summary.currentBalance.toFixed(2))
       if (summary.schedule.some((r) => r.isOverdue)) {
         overdueCount++
+        let loanShortfall = 0
+        let oldestDaysPastDue = 0
         for (const row of summary.schedule) {
           if (!row.isOverdue) continue
-          overdueAmount += Number(row.scheduledPayment.minus(row.actualPayment).toFixed(2))
+          const shortfall = Number(row.scheduledPayment.minus(row.actualPayment).toFixed(2))
+          overdueAmount += shortfall
+          loanShortfall += shortfall
+          const days = Math.max(
+            0,
+            Math.floor((now.getTime() - row.dueDate.getTime()) / 86_400_000) - loan.grace_days,
+          )
+          if (days > oldestDaysPastDue) oldestDaysPastDue = days
         }
+        overdueLoans.push({
+          loanId: loan.id,
+          borrower: loan.borrower_name,
+          daysPastDue: oldestDaysPastDue,
+          amount: loanShortfall.toFixed(2),
+        })
       }
       if (summary.nextDueDate && !isAfter(summary.nextDueDate, in7)) {
         upcoming.push({
@@ -123,13 +145,14 @@ export default async function DashboardPage() {
             Portfolio overview. Numbers recompute from your loans and payments on every load.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/borrowers/new">
             <Button variant="outline">New borrower</Button>
           </Link>
           <Link href="/loans/new">
-            <Button>New loan</Button>
+            <Button variant="outline">New loan</Button>
           </Link>
+          <GlobalLogPaymentButton />
         </div>
       </div>
 
@@ -207,16 +230,37 @@ export default async function DashboardPage() {
       </Card>
 
       {overdueCount > 0 ? (
-        <Card>
+        <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="text-destructive text-base">
-              {overdueCount} loan{overdueCount === 1 ? '' : 's'} overdue
+              {overdueCount} loan{overdueCount === 1 ? '' : 's'} overdue · {formatPHP(overdueAmount)}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Link href="/reports/aging" className="text-sm underline">
-              Open the aging report
-            </Link>
+          <CardContent className="space-y-2">
+            <div className="divide-y">
+              {overdueLoans
+                .slice()
+                .sort((a, b) => b.daysPastDue - a.daysPastDue)
+                .slice(0, 5)
+                .map((o) => (
+                  <div key={o.loanId} className="flex items-center justify-between py-2 text-sm">
+                    <Link href={`/loans/${o.loanId}`} className="font-medium hover:underline">
+                      {o.borrower}
+                    </Link>
+                    <div className="text-muted-foreground flex items-center gap-4 text-right">
+                      <span className="tabular-nums">
+                        {o.daysPastDue} day{o.daysPastDue === 1 ? '' : 's'} past due
+                      </span>
+                      <span className="text-foreground tabular-nums">{formatPHP(o.amount)}</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            {overdueLoans.length > 5 ? (
+              <Link href="/reports/aging" className="text-sm underline">
+                See all {overdueLoans.length} in the aging report →
+              </Link>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

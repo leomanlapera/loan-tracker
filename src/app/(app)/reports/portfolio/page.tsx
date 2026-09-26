@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { format, startOfYear } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -14,6 +15,7 @@ import { DateRangeForm } from '@/components/reports/date-range-form'
 import { loadAllLoans, summarizeAt } from '@/lib/reports/loans'
 import { parseDateRange } from '@/lib/reports/date-range'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
+import { interestMethodLabel, loanStatusLabel } from '@/lib/labels'
 
 export default async function PortfolioReport({
   searchParams,
@@ -52,9 +54,7 @@ export default async function PortfolioReport({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/reports" className="text-muted-foreground text-sm hover:underline">
-          ← Reports
-        </Link>
+        <BackLink href="/reports">Reports</BackLink>
       </div>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Portfolio summary</h1>
@@ -109,9 +109,9 @@ export default async function PortfolioReport({
                       <TableCell>{formatDate(loan.start_date)}</TableCell>
                       <TableCell className="tabular-nums">{formatPHP(loan.principal)}</TableCell>
                       <TableCell className="tabular-nums">{formatRate(loan.monthly_rate)}</TableCell>
-                      <TableCell>{loan.interest_method}</TableCell>
+                      <TableCell>{interestMethodLabel(loan.interest_method)}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{loan.status}</Badge>
+                        <Badge variant="outline">{loanStatusLabel(loan.status)}</Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatPHP(balance)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatPHP(totalPaid)}</TableCell>

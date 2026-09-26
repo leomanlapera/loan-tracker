@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import { format } from 'date-fns'
 import {
   paymentSchema,
@@ -19,6 +20,7 @@ import {
 } from '../payment-actions'
 import { Field } from '@/components/form/field'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/ui/money-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import {
@@ -120,8 +122,10 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
           }
         }
         setFormError(result.error)
+        toast.error(result.error)
         return
       }
+      toast.success(mode === 'create' ? 'Payment logged' : 'Payment updated')
       onOpenChange(false)
       router.refresh()
     })
@@ -143,9 +147,9 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
             </p>
           ) : null}
 
-          <Field id="amount" label="Amount (₱)" error={errors.amount?.message}>
+          <Field id="amount" label="Amount" error={errors.amount?.message}>
             <div className="flex gap-2">
-              <Input id="amount" inputMode="decimal" {...register('amount')} />
+              <MoneyInput id="amount" {...register('amount')} />
               <Button
                 type="button"
                 variant="outline"
@@ -170,7 +174,9 @@ export function PaymentDialog({ open, onOpenChange, mode, loanId, payment }: Pro
                 }
               >
                 <SelectTrigger id="method">
-                  <SelectValue />
+                  <SelectValue>
+                    {(v) => paymentMethodLabels[(v as PaymentMethod) ?? 'cash'] ?? 'Cash'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {PAYMENT_METHODS.map((m) => (

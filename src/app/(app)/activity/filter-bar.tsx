@@ -1,10 +1,17 @@
 'use client'
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { FilterField, HiddenLabel } from '@/components/reports/filter-field'
 
 interface Props {
   from: string
@@ -13,23 +20,50 @@ interface Props {
   action: string
 }
 
-const ENTITY_OPTIONS = ['', 'borrower', 'loan', 'payment', 'loan_custom_schedule'] as const
-const ACTION_OPTIONS = ['', 'create', 'update', 'delete'] as const
+const ENTITY_OPTIONS = [
+  { value: '__all', label: 'All entities' },
+  { value: 'borrower', label: 'Borrower' },
+  { value: 'loan', label: 'Loan' },
+  { value: 'payment', label: 'Payment' },
+  { value: 'loan_custom_schedule', label: 'Custom schedule' },
+] as const
+
+const ACTION_OPTIONS = [
+  { value: '__all', label: 'All actions' },
+  { value: 'create', label: 'Create' },
+  { value: 'update', label: 'Update' },
+  { value: 'delete', label: 'Delete' },
+] as const
+
+const ENTITY_LABELS: Record<string, string> = Object.fromEntries(
+  ENTITY_OPTIONS.map((o) => [o.value, o.label]),
+)
+const ACTION_LABELS: Record<string, string> = Object.fromEntries(
+  ACTION_OPTIONS.map((o) => [o.value, o.label]),
+)
 
 export function ActivityFilterBar({ from, to, entity, action }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
 
+  const [entityValue, setEntityValue] = useState(entity || '__all')
+  const [actionValue, setActionValue] = useState(action || '__all')
+
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     const next = new URLSearchParams(params.toString())
-    for (const key of ['from', 'to', 'entity', 'action'] as const) {
-      const value = form.get(key)
-      if (typeof value === 'string' && value.length > 0) next.set(key, value)
-      else next.delete(key)
-    }
+    const fromVal = String(form.get('from') ?? '')
+    const toVal = String(form.get('to') ?? '')
+    if (fromVal) next.set('from', fromVal)
+    else next.delete('from')
+    if (toVal) next.set('to', toVal)
+    else next.delete('to')
+    if (entityValue && entityValue !== '__all') next.set('entity', entityValue)
+    else next.delete('entity')
+    if (actionValue && actionValue !== '__all') next.set('action', actionValue)
+    else next.delete('action')
     router.push(`${pathname}?${next.toString()}`)
   }
 
@@ -37,57 +71,47 @@ export function ActivityFilterBar({ from, to, entity, action }: Props) {
     <form
       key={`${from}-${to}-${entity}-${action}`}
       onSubmit={onSubmit}
-      className="flex flex-wrap items-end gap-3 rounded-md border p-3"
+      className="flex flex-wrap gap-3 rounded-md border p-3 [&>*]:w-full sm:[&>*]:w-40"
     >
-      <div className="space-y-1">
-        <Label htmlFor="from" className="text-xs">
-          From
-        </Label>
-        <Input id="from" name="from" type="date" defaultValue={from} />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="to" className="text-xs">
-          To
-        </Label>
-        <Input id="to" name="to" type="date" defaultValue={to} />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="entity" className="text-xs">
-          Entity
-        </Label>
-        <select
-          id="entity"
-          name="entity"
-          defaultValue={entity}
-          className="border-input rounded-md border px-3 py-2 text-sm"
-        >
-          {ENTITY_OPTIONS.map((e) => (
-            <option key={e || 'all'} value={e}>
-              {e ? e : 'All'}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="action" className="text-xs">
-          Action
-        </Label>
-        <select
-          id="action"
-          name="action"
-          defaultValue={action}
-          className="border-input rounded-md border px-3 py-2 text-sm"
-        >
-          {ACTION_OPTIONS.map((a) => (
-            <option key={a || 'all'} value={a}>
-              {a ? a : 'All'}
-            </option>
-          ))}
-        </select>
-      </div>
-      <Button type="submit" variant="outline">
-        Apply
-      </Button>
+      <FilterField id="from" label="From">
+        <Input id="from" name="from" type="date" defaultValue={from} className="h-8 w-full" />
+      </FilterField>
+      <FilterField id="to" label="To">
+        <Input id="to" name="to" type="date" defaultValue={to} className="h-8 w-full" />
+      </FilterField>
+      <FilterField id="entity" label="Entity">
+        <Select value={entityValue} onValueChange={(v) => setEntityValue(v ?? '__all')}>
+          <SelectTrigger id="entity" className="h-8 w-full">
+            <SelectValue>{(v) => ENTITY_LABELS[String(v ?? '__all')] ?? 'All entities'}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {ENTITY_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
+      <FilterField id="action" label="Action">
+        <Select value={actionValue} onValueChange={(v) => setActionValue(v ?? '__all')}>
+          <SelectTrigger id="action" className="h-8 w-full">
+            <SelectValue>{(v) => ACTION_LABELS[String(v ?? '__all')] ?? 'All actions'}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {ACTION_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
+      <FilterField label={<HiddenLabel>Apply</HiddenLabel>} className="sm:!w-auto">
+        <Button type="submit" variant="outline" className="h-8 w-full sm:w-auto">
+          Apply
+        </Button>
+      </FilterField>
     </form>
   )
 }

@@ -273,3 +273,87 @@ export async function computePayoff(
     return { ok: false, error: (e as Error).message }
   }
 }
+
+export interface ActiveLoanOption {
+  loanId: string
+  borrowerName: string
+  balance: string
+  nextDueDate: string | null
+  nextDueAmount: string
+}
+
+/**
+ * Compact list of active loans for the global "Log payment" picker.
+ * One engine pass per loan for balance + next due. Skips paid/cancelled/written_off.
+ */
+export async function listActiveLoansForPicker(): Promise<ActiveLoanOption[]> {
+  const { supabase } = await requireUser()
+  const now = new Date()
+
+  const [{ data: loans = [] }, { data: borrowers = [] }, { data: payments = [] }, { data: schedule = [] }] =
+    await Promise.all([
+      supabase
+        .from('loans')
+        .select(
+          'id, borrower_id, principal, monthly_rate, tenure_months, start_date, interest_method, repayment_type, after_maturity, grace_days',
+        )
+        .eq('status', 'active'),
+      supabase.from('borrowers').select('id, full_name'),
+      supabase
+        .from('payments')
+        .select('loan_id, amount, paid_on')
+        .is('deleted_at', null),
+      supabase.from('loan_custom_schedule').select('loan_id, period, planned_amount'),
+    ])
+
+  const nameById = new Map((borrowers ?? []).map((b) => [b.id, b.full_name]))
+  const paymentsByLoan = new Map<string, PaymentInput[]>()
+  for (const p of payments ?? []) {
+    const list = paymentsByLoan.get(p.loan_id) ?? []
+    list.push({ amount: Number(p.amount), paidOn: new Date(`${p.paid_on}T00:00:00Z`) })
+    paymentsByLoan.set(p.loan_id, list)
+  }
+  const scheduleByLoan = new Map<string, { period: number; plannedAmount: string }[]>()
+  for (const s of schedule ?? []) {
+    const list = scheduleByLoan.get(s.loan_id) ?? []
+    list.push({ period: s.period, plannedAmount: String(s.planned_amount) })
+    scheduleByLoan.set(s.loan_id, list)
+  }
+
+  const rows: ActiveLoanOption[] = []
+  for (const loan of loans ?? []) {
+    try {
+      const out = compute({
+        loan: {
+          principal: String(loan.principal),
+          monthlyRate: String(loan.monthly_rate),
+          tenureMonths: loan.tenure_months,
+          startDate: new Date(`${loan.start_date}T00:00:00Z`),
+          interestMethod: loan.interest_method as InterestMethod,
+          repaymentType: loan.repayment_type as RepaymentType,
+          afterMaturity: loan.after_maturity as AfterMaturity,
+          graceDays: loan.grace_days,
+          customSchedule:
+            loan.repayment_type === 'custom' ? scheduleByLoan.get(loan.id) : undefined,
+        },
+        payments: paymentsByLoan.get(loan.id) ?? [],
+        asOf: now,
+      })
+      rows.push({
+        loanId: loan.id,
+        borrowerName: nameById.get(loan.borrower_id) ?? 'Unknown',
+        balance: out.currentBalance.toFixed(2),
+        nextDueDate: out.nextDueDate ? out.nextDueDate.toISOString().slice(0, 10) : null,
+        nextDueAmount: out.nextDueAmount.toFixed(2),
+      })
+    } catch {}
+  }
+
+  rows.sort((a, b) => {
+    if (a.nextDueDate && b.nextDueDate) return a.nextDueDate.localeCompare(b.nextDueDate)
+    if (a.nextDueDate) return -1
+    if (b.nextDueDate) return 1
+    return a.borrowerName.localeCompare(b.borrowerName)
+  })
+  return rows
+}

@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { updatePasswordAction, type ActionState } from '@/app/(auth)/actions'
 import { FormMessage } from '@/components/auth/form-message'
 import { SubmitButton } from '@/components/auth/submit-button'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -29,10 +29,9 @@ export default function UpdatePasswordPage() {
           <FormMessage state={state} />
           <div className="space-y-2">
             <Label htmlFor="password">New password</Label>
-            <Input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               autoComplete="new-password"
               minLength={8}
               required

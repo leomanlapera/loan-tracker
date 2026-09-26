@@ -1,26 +1,17 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('public surface', () => {
-  test('landing page renders CTAs', async ({ page }) => {
+  test('/ redirects to /login when unauthenticated', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle(/Loan Tracker/i)
-    await expect(page.getByRole('heading', { name: /track private loans/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: /^get started$/i })).toBeVisible()
+    await expect(page).toHaveURL(/\/login/)
   })
 
   test('/login renders sign-in form', async ({ page }) => {
     await page.goto('/login')
-    await expect(page.getByText(/^log in$/i).first()).toBeVisible()
+    await expect(page.getByText(/welcome back/i).first()).toBeVisible()
     await expect(page.locator('input#email')).toBeVisible()
     await expect(page.locator('input#password')).toBeVisible()
-  })
-
-  test('/sign-up renders account-creation form', async ({ page }) => {
-    await page.goto('/sign-up')
-    await expect(page.getByText(/create your account/i).first()).toBeVisible()
-    await expect(page.locator('input#displayName')).toBeVisible()
-    await expect(page.locator('input#email')).toBeVisible()
-    await expect(page.locator('input#password')).toBeVisible()
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible()
   })
 
   test('/reset-password renders request form', async ({ page }) => {
@@ -38,6 +29,11 @@ test.describe('public surface', () => {
     const resp = await page.goto('/terms')
     expect(resp?.status()).toBe(200)
     await expect(page.getByRole('heading', { name: /terms of use/i })).toBeVisible()
+  })
+
+  test('/sign-up no longer exists', async ({ page }) => {
+    const resp = await page.goto('/sign-up')
+    expect(resp?.status()).toBe(404)
   })
 })
 
@@ -57,8 +53,6 @@ test.describe('auth gate', () => {
   for (const path of protectedPaths) {
     test(`${path} redirects unauthenticated user to /login`, async ({ page }) => {
       await page.goto(path)
-      // Either middleware (with ?next=) or the app-layout guard (without) may win
-      // the race. Both end at /login — that's the acceptance criterion.
       await expect(page).toHaveURL(/\/login/)
     })
   }

@@ -1,10 +1,16 @@
 import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { compute } from '@/lib/engine/compute'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
+import {
+  interestMethodLabel,
+  loanStatusLabel,
+  repaymentTypeLabel,
+} from '@/lib/labels'
 import type {
   InterestMethod,
   RepaymentType,
@@ -107,9 +113,7 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/loans" className="text-muted-foreground text-sm hover:underline">
-          ← Loans
-        </Link>
+        <BackLink href="/loans">Loans</BackLink>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -128,9 +132,9 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
             {formatRate(Number(loan.monthly_rate))} · {loan.tenure_months} months
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{loan.status}</Badge>
-            <Badge variant="outline">{loan.interest_method}</Badge>
-            <Badge variant="outline">{loan.repayment_type}</Badge>
+            <Badge variant="outline">{loanStatusLabel(loan.status)}</Badge>
+            <Badge variant="outline">{interestMethodLabel(loan.interest_method)}</Badge>
+            <Badge variant="outline">{repaymentTypeLabel(loan.repayment_type)}</Badge>
           </div>
         </div>
         <LoanActionBar loanId={loan.id} status={loan.status} disableCancel={activeCount > 0} />

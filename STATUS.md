@@ -4,8 +4,7 @@ _Last updated: 2026-09-26_
 
 ## Current phase
 
-**Phase 7 — Polish, QA & Launch (code-executable slice): ✅ Complete.**
-External items remain (lawyer review, beta, Lighthouse in prod).
+**MVP is code-complete + polished.** Phase 7 code slice done; external items (lawyer review, beta, Lighthouse in prod) remain.
 
 See [`phases/README.md`](./phases/README.md) for the full plan.
 
@@ -20,76 +19,102 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 | 4 | [Payments & Loan Detail](./phases/phase-04-payments-detail.md) | ✅ Complete |
 | 5 | [Dashboard & Reports](./phases/phase-05-dashboard-reports.md) | ✅ Complete |
 | 6 | [Activity Log & Settings](./phases/phase-06-activity-settings.md) | ✅ Complete |
-| 7 | [Polish, QA & Launch](./phases/phase-07-launch.md) | ✅ Code slice complete; external items open |
+| 7 | [Polish, QA & Launch](./phases/phase-07-launch.md) | ✅ Code slice + UX polish complete; external items open |
 | 8 | [Phase 2 Backlog](./phases/phase-08-post-mvp.md) | 📌 Post-MVP |
 
-## Phase 7 highlights
+## Polish and UX improvements (post-Phase 7)
 
-**E2E and accessibility** — `tests/`
-- `smoke.spec.ts` — 6 public route smokes + 9 auth-gate assertions (every protected route redirects an unauthenticated visitor to `/login`)
-- `a11y.spec.ts` — `@axe-core/playwright` scan on `/`, `/login`, `/sign-up`, `/reset-password`, `/privacy`, `/terms`. Fails on any `critical` or `serious` WCAG 2 A/AA violation. **All 6 routes clean.**
-- `mobile.spec.ts` — 5 public routes verified at 375px viewport with no horizontal overflow
-- **26 Playwright tests, all passing**
+**Theme & typography**
+- Wealthy Greens OKLCH palette (light + dark), both mapped through shadcn tokens
+- IBM Plex Sans (body) + IBM Plex Mono (numbers) via `next/font/google`
+- **Dark mode toggle** in the sidebar footer (light / dark / system), persisted via localStorage; inline `<script>` in `<head>` prevents FOUC on first paint
 
-**Legal pages** — `/privacy` and `/terms`
-- New `(legal)` route group with its own layout (branded header + shared footer)
-- `PrivacyPage` — RA 10173 (Data Privacy Act) notice: collection, retention, access/rectification/erasure/portability rights, contact
-- `TermsPage` — Civil Code Art. 1956/1959 written-agreement notice, Lending Company Regulation Act (RA 9474) callout, limitation of liability
-- Signup form now links to both; footer includes both links
+**App shell**
+- Sidebar navigation (icon-collapse mode) instead of top nav; sticky, `sticky top-0 h-screen`
+- "Signed in as email" + Sign out + Theme + Collapse cluster at the sidebar footer
+- No top header; no shared footer (content-first)
+- Full-width main content (no `max-w-6xl` cap)
 
-**Rate limiting** — `src/lib/rate-limit.ts`
-- In-memory sliding-window limiter, keyed by `ip:purpose`, `server-only`
-- Wired into `signUpAction` and `requestPasswordResetAction` — **5 attempts per hour** each
-- Returns a user-friendly retry-after message
-- Ops runbook documents the Upstash Redis swap for horizontal scale
+**Global actions**
+- **`GlobalLogPaymentButton`** in the sidebar (primary CTA) and on the dashboard header — searchable loan picker + inline payment form. Zero navigation to log a payment.
+- **Cmd/Ctrl + K command palette** (`src/components/command-palette.tsx`) — fuzzy search of borrowers + loans, `↑/↓/Enter` navigation
+- **Keyboard shortcuts** — `n` (context-aware new borrower/loan), `/` (focus first search input); auto-skipped while typing in inputs
 
-**Ops runbook** — `docs/ops.md`
-- Environments, backups + PITR verification procedure
-- Single-user data restore from the activity log
-- Key rotation checklist
-- Account-deletion request handling
-- Migration rollback (never `db reset --linked` on prod)
-- Rate-limit backend swap notes
-- Monitoring targets and incident checklist
+**Forms**
+- New borrower / new loan / edit loan share the same shell: BackLink → h1 → description → Card-wrapped form
+- `MoneyInput` component with a `₱` prefix inside the field — used on principal, custom-schedule rows, and every payment amount input
+- `PasswordInput` component with Eye/EyeOff toggle
+- `Checkbox` (shadcn) replaces all raw `<input type="checkbox">`
+- Filter bars: shared `FilterField` + `flex flex-wrap gap-3 [&>*]:w-full sm:[&>*]:w-40` recipe across `/activity` and all six reports; buttons override with `sm:!w-auto`
+- Every `Select` shows a friendly label (via `<SelectValue>{v => LABEL_MAP[v]}</SelectValue>`) instead of raw enum values; `SelectTrigger` default is `w-full` so it fills the field
 
-## What's shipped (Phases 0–7)
+**Tables**
+- **Sticky table headers** across the app (Schedule, Payment log, Reports)
+- **Row actions** on `/loans` list — `⋯` dropdown with "Log payment" (opens dialog inline), "Open loan", "Edit loan"
+- **Empty states** with icon + headline + CTA on `/borrowers` and `/loans`
+- All enum badges use `src/lib/labels.ts` (loan status, interest method, repayment type, period status, activity entity, activity action) — no more `equal_installments` in the UI
+
+**Feedback**
+- **Sonner toasts** mounted at the root; wired into every save/edit/delete (borrower/loan/payment/settings) with themed styling
+- **Delete-payment confirmation dialog** (soft delete still, but requires confirm)
+- **Dashboard overdue banner** lists the top 5 overdue loans (borrower name + days past due + shortfall) instead of "N overdue"
+
+**Loading & errors**
+- `Skeleton` component + route-level `loading.tsx` files for `/dashboard`, `/loans`, `/loans/[id]`, `/borrowers`, `/reports`
+- `src/app/error.tsx` (global) + `src/app/(app)/error.tsx` (in-shell) — friendly retry + error id
+
+**Navigation micro-fixes**
+- `BackLink` component with `ArrowLeft` icon replaces every `← Text` link (11 pages)
+- Legal `/privacy` + `/terms` retained (public routes; header + footer inside their own `(legal)` layout)
+
+**Invite-only auth (breaking change)**
+- **Removed sign-up entirely.** Deleted `/sign-up`, `/sign-up/check-inbox`, `signUpAction`, `resendConfirmationAction`, `signUpSchema`. Middleware public paths no longer include `/sign-up`. Tests assert `/sign-up` now returns 404.
+- **Homepage redirects.** `/` → `/dashboard` (auth) or `/login` (unauth). No public landing page.
+- **Login form redesigned** — hero mint LockKeyhole mark, "Welcome back" h1, autofocus email, better labels/placeholders, "Forgot password?" full phrase, invite-only footnote.
+
+**Structural**
+- **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
+- **Node 20 realtime shim** for the Supabase integration tests
+
+## Verified
+
+- ✅ `pnpm lint` (0 errors; 3 non-blocking React Compiler notes on RHF `watch()`)
+- ✅ `pnpm typecheck`
+- ✅ `pnpm test` (39/39 — engine + allocation + CSV)
+- ✅ `pnpm test:integration` (19/19 last run — RLS + activity triggers)
+- ✅ `pnpm e2e` (23/23 — smoke + auth gates + a11y + mobile viewport)
+- ✅ `pnpm build` — 27 routes (was 31; dropped `/sign-up`, `/sign-up/check-inbox`)
+
+## What's shipped
 
 **Framework & tooling**
 - Next.js 16 App Router + Turbopack + TypeScript
 - Tailwind CSS v4 + shadcn/ui (base-ui variant, Wealthy Greens palette, IBM Plex Sans/Mono)
-- Runtime: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `@hookform/resolvers`, `server-only`, `jszip`
+- Runtime: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `@hookform/resolvers`, `server-only`, `jszip`, `sonner`
 - Dev: Vitest 3, jsdom 24, Playwright, `@axe-core/playwright`, Prettier, Supabase CLI (workspace dep), `ws` for Node 20 realtime shim
 
-**Engine** — 39 Vitest cases (30 core + 3 allocation + 6 CSV)
+**Engine** — 39 Vitest cases (PRD §6.6 to the centavo)
 
-**Supabase** — 8 migrations applied to remote, RLS enforced (19/19 integration tests), tightened payments policy, activity-log triggers writing on every mutation
+**Supabase** — 8 migrations applied to remote, RLS enforced (19/19 integration tests), tightened payments policy, activity-log triggers on every mutation
 
-**Routes** (31 total)
-- Public: `/`, `/login`, `/sign-up`, `/reset-password`, `/reset-password/update`, `/auth/callback`, `/privacy`, `/terms`
+**Routes** (27 total)
+- Public: `/` (redirect), `/login`, `/reset-password`, `/reset-password/update`, `/auth/callback`, `/privacy`, `/terms`
 - Authed pages: `/dashboard`, `/borrowers`, `/borrowers/new`, `/borrowers/[id]`, `/loans`, `/loans/new`, `/loans/[id]`, `/loans/[id]/edit`, `/reports`, `/reports/{portfolio,statement,collections,interest,aging,write-offs}`, `/activity`, `/settings`
 - CSV route handlers: `/reports/{portfolio,statement,collections,interest,aging,write-offs}/export`
 - Data export: `/api/export`
 
-## Verified
-
-- ✅ `pnpm lint` (3 non-blocking React Compiler notes on RHF `watch()`)
-- ✅ `pnpm typecheck`
-- ✅ `pnpm test` (39/39)
-- ✅ `pnpm test:integration` (19/19)
-- ✅ `pnpm e2e` (26/26 including Axe a11y + 375px mobile viewport)
-- ✅ `pnpm build` — 31 routes
-
 ## Phase 7 items still requiring you (external)
 
-These weren't touched — they need a human:
-
-1. **Legal review of `/privacy` and `/terms` by a Philippine lawyer.** The pages are drafted defensively but not attorney-reviewed. Please have someone with LOTS of RA 10173 / Lending Company Regulation Act experience read them before beta.
-2. **Beta with 3–5 real lenders.** Recruit, onboard, collect balance reconciliations to confirm the engine matches their manual records.
-3. **Lighthouse on production URL under 4G throttle.** Local metrics aren't representative; run after Vercel deploy.
-4. **Supabase paid tier for PITR** — if you want point-in-time recovery in prod (recommended).
+1. **Legal review of `/privacy` and `/terms` by a Philippine lawyer.** Drafts are defensive but not attorney-vetted.
+2. **Beta with 3–5 real lenders.** Reconcile their manual balances against the app.
+3. **Lighthouse on production URL under 4G throttle.** Local metrics aren't representative.
+4. **Supabase paid tier for PITR** if you want point-in-time recovery in prod.
+5. **Invite users manually** via the Supabase Dashboard → Authentication → Users (send invite / create user). App has no self-serve sign-up.
 
 ## Known deferred
 
+- Pagination on lists and reports — only matters ~500+ loans
+- Heading hierarchy fix — Axe already green (cosmetic-only)
 - Interest-only repayment type — Phase 8 backlog
 - Late-payment penalty rate/fee (PRD §12 Q2) — Phase 8 backlog
 - Vercel project not linked yet
@@ -97,13 +122,18 @@ These weren't touched — they need a human:
 
 ## Setup to-dos for the maintainer
 
-- **Add `/privacy` and `/terms` to Supabase Dashboard → Auth → URL Configuration → Additional Redirect URLs**? Not needed — those pages are static, don't participate in auth flows.
-- Still pending from earlier phases: Site URL config, Vercel link + env vars for deploy.
+- Supabase Dashboard → Auth → URL Configuration → Site URL: `http://localhost:3000` (and your production URL)
+- Vercel — `vercel link` + env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)
+- Invite the first user via Supabase Dashboard (no public sign-up)
 
 ## CI
 
-Not configured. Quality gate is local: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm e2e && pnpm build`.
+Not configured. Quality gate is local:
+
+```bash
+pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm e2e && pnpm build
+```
 
 ## Up next
 
-The **MVP is code-complete**. Deployment (Vercel), lawyer sign-off, and beta are all that stand between here and launch. When you're ready, jump into `phases/phase-08-post-mvp.md` — top of the backlog is the borrower read-only portal, PDF statements, and email reminders.
+The **MVP is code-complete and polished**. Deploy to Vercel, get legal sign-off, invite beta users. After launch, `phases/phase-08-post-mvp.md` — borrower read-only portal, PDF statements, email reminders, prorated payoff, file attachments, late-payment penalty rate.

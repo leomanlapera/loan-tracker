@@ -2,8 +2,11 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { Users } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/empty-state'
 import {
   Table,
   TableBody,
@@ -36,6 +39,23 @@ export function BorrowerSearch({ rows }: { rows: BorrowerRow[] }) {
     )
   }, [rows, q])
 
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-lg border">
+        <EmptyState
+          icon={Users}
+          title="No borrowers yet"
+          description="Add the people you lend to — you can log loans and payments once they're on file."
+          action={
+            <Link href="/borrowers/new">
+              <Button>Add borrower</Button>
+            </Link>
+          }
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
       <Input
@@ -58,9 +78,7 @@ export function BorrowerSearch({ rows }: { rows: BorrowerRow[] }) {
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-muted-foreground py-6 text-center text-sm">
-                  {rows.length === 0
-                    ? 'No borrowers yet. Add one to get started.'
-                    : 'No borrowers match that search.'}
+                  No borrowers match that search.
                 </TableCell>
               </TableRow>
             ) : (

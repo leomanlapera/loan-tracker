@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -51,9 +51,7 @@ export default async function CollectionsReport({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/reports" className="text-muted-foreground text-sm hover:underline">
-          ← Reports
-        </Link>
+        <BackLink href="/reports">Reports</BackLink>
       </div>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Collections</h1>

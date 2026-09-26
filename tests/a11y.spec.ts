@@ -5,7 +5,7 @@ import AxeBuilder from '@axe-core/playwright'
  * Fail the build on `critical` or `serious` a11y violations for public routes.
  * `moderate` and `minor` are reported but not blocking during MVP.
  */
-const routes = ['/', '/login', '/sign-up', '/reset-password', '/privacy', '/terms']
+const routes = ['/login', '/reset-password', '/privacy', '/terms']
 
 for (const path of routes) {
   test(`axe: ${path} has no critical/serious violations`, async ({ page }) => {

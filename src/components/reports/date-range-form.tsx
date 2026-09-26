@@ -1,16 +1,16 @@
 'use client'
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { FilterField, HiddenLabel } from './filter-field'
 
 interface Props {
   initialFrom: string
   initialTo: string
   exportPath: string
-  extraFilters?: React.ReactNode
+  extraFilters?: ReactNode
 }
 
 export function DateRangeForm({ initialFrom, initialTo, exportPath, extraFilters }: Props) {
@@ -38,27 +38,27 @@ export function DateRangeForm({ initialFrom, initialTo, exportPath, extraFilters
     <form
       key={`${initialFrom}-${initialTo}`}
       onSubmit={onSubmit}
-      className="flex flex-wrap items-end gap-3 rounded-md border p-3"
+      className="flex flex-wrap gap-3 rounded-md border p-3 [&>*]:w-full sm:[&>*]:w-40"
     >
-      <div className="space-y-1">
-        <Label htmlFor="from" className="text-xs">
-          From
-        </Label>
-        <Input id="from" name="from" type="date" defaultValue={initialFrom} />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="to" className="text-xs">
-          To
-        </Label>
-        <Input id="to" name="to" type="date" defaultValue={initialTo} />
-      </div>
+      <FilterField id="from" label="From">
+        <Input id="from" name="from" type="date" defaultValue={initialFrom} className="h-8 w-full" />
+      </FilterField>
+      <FilterField id="to" label="To">
+        <Input id="to" name="to" type="date" defaultValue={initialTo} className="h-8 w-full" />
+      </FilterField>
       {extraFilters}
-      <Button type="submit" variant="outline">
-        Apply
-      </Button>
-      <a href={exportHref} className="ml-auto">
-        <Button type="button">Download CSV</Button>
-      </a>
+      <FilterField label={<HiddenLabel>Apply</HiddenLabel>} className="sm:!w-auto">
+        <Button type="submit" variant="outline" className="h-8 w-full sm:w-auto">
+          Apply
+        </Button>
+      </FilterField>
+      <FilterField label={<HiddenLabel>Download CSV</HiddenLabel>} className="sm:!ml-auto sm:!w-auto">
+        <a href={exportHref}>
+          <Button type="button" className="h-8 w-full sm:w-auto">
+            Download CSV
+          </Button>
+        </a>
+      </FilterField>
     </form>
   )
 }

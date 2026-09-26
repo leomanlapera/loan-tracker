@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test'
  */
 test.use({ viewport: { width: 375, height: 667 } })
 
-const routes = ['/', '/login', '/sign-up', '/privacy', '/terms']
+const routes = ['/login', '/reset-password', '/privacy', '/terms']
 
 for (const path of routes) {
   test(`${path} fits within 375px without horizontal scroll`, async ({ page }) => {

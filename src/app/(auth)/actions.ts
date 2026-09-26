@@ -8,7 +8,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rate-limit'
 import {
   loginSchema,
-  signUpSchema,
   requestResetSchema,
   updatePasswordSchema,
 } from '@/lib/validation/auth'
@@ -30,6 +29,14 @@ async function siteUrl(): Promise<string> {
 }
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const gate = await rateLimit('login', { limit: 10, windowMs: 15 * 60 * 1000 })
+  if (!gate.ok) {
+    return {
+      ok: false,
+      error: `Too many sign-in attempts. Try again in ${Math.ceil(gate.retryAfterSeconds / 60)} minute(s).`,
+    }
+  }
+
   const parsed = loginSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -42,44 +49,6 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
 
   const next = (formData.get('next') as string | null) || '/dashboard'
   redirect(next)
-}
-
-export async function signUpAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const gate = await rateLimit('sign-up', { limit: 5, windowMs: 60 * 60 * 1000 })
-  if (!gate.ok) {
-    return {
-      ok: false,
-      error: `Too many sign-up attempts. Try again in ${Math.ceil(gate.retryAfterSeconds / 60)} minute(s).`,
-    }
-  }
-
-  const parsed = signUpSchema.safeParse({
-    email: formData.get('email'),
-    password: formData.get('password'),
-    displayName: formData.get('displayName'),
-  })
-  if (!parsed.success) return { ok: false, error: firstError(parsed) }
-
-  const supabase = await createClient()
-  const site = await siteUrl()
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      emailRedirectTo: `${site}/auth/callback`,
-      data: { display_name: parsed.data.displayName },
-    },
-  })
-  if (error) return { ok: false, error: error.message }
-
-  if (data.user && !data.session) {
-    return {
-      ok: true,
-      message: 'Account created. Check your inbox for the confirmation link.',
-    }
-  }
-
-  redirect('/dashboard')
 }
 
 export async function signOutAction(): Promise<void> {

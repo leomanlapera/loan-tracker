@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { activityActionLabel, activityEntityLabel } from '@/lib/labels'
 
 export interface ActivityRow {
   id: string
@@ -50,7 +51,7 @@ export function ActivityRowView({ row }: { row: ActivityRow }) {
         <span className="text-muted-foreground tabular-nums">
           {format(new Date(row.createdAt), 'MMM d · HH:mm')}
         </span>
-        <Badge variant="outline">{row.entityType}</Badge>
+        <Badge variant="outline">{activityEntityLabel(row.entityType)}</Badge>
         <Badge
           variant={
             row.action === 'delete'
@@ -60,7 +61,7 @@ export function ActivityRowView({ row }: { row: ActivityRow }) {
                 : 'secondary'
           }
         >
-          {row.action}
+          {activityActionLabel(row.action)}
         </Badge>
         <span className="text-muted-foreground text-xs">
           #{row.entityId.slice(0, 8)}

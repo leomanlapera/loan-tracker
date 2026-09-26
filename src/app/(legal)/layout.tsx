@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { SiteFooter } from '@/components/site-footer'
 
 export default function LegalLayout({ children }: { children: ReactNode }) {
   return (
@@ -21,7 +20,6 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">{children}</main>
-      <SiteFooter />
     </div>
   )
 }

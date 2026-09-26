@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -10,6 +11,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { FilterField, HiddenLabel } from '@/components/reports/filter-field'
 import { loadAllLoans } from '@/lib/reports/loans'
 import { agingRows, bucketTotals, AGING_BUCKETS } from '@/lib/reports/aging'
 import { formatPHP } from '@/lib/format'
@@ -33,9 +37,7 @@ export default async function AgingReport({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/reports" className="text-muted-foreground text-sm hover:underline">
-          ← Reports
-        </Link>
+        <BackLink href="/reports">Reports</BackLink>
       </div>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Aging / overdue</h1>
@@ -45,31 +47,28 @@ export default async function AgingReport({
         </p>
       </div>
 
-      <form method="get" className="flex flex-wrap items-end gap-3 rounded-md border p-3">
-        <div className="space-y-1">
-          <label htmlFor="asOf" className="text-xs">
-            As of
-          </label>
-          <input
-            id="asOf"
-            name="asOf"
-            type="date"
-            defaultValue={asOfIso}
-            className="border-input rounded-md border px-3 py-2 text-sm"
-          />
-        </div>
-        <button
-          type="submit"
-          className="border-input rounded-md border px-3 py-2 text-sm hover:bg-muted"
+      <form
+        method="get"
+        className="flex flex-wrap gap-3 rounded-md border p-3 [&>*]:w-full sm:[&>*]:w-40"
+      >
+        <FilterField id="asOf" label="As of">
+          <Input id="asOf" name="asOf" type="date" defaultValue={asOfIso} className="h-8 w-full" />
+        </FilterField>
+        <FilterField label={<HiddenLabel>Apply</HiddenLabel>} className="sm:!w-auto">
+          <Button type="submit" variant="outline" className="h-8 w-full sm:w-auto">
+            Apply
+          </Button>
+        </FilterField>
+        <FilterField
+          label={<HiddenLabel>Download CSV</HiddenLabel>}
+          className="sm:!ml-auto sm:!w-auto"
         >
-          Apply
-        </button>
-        <a
-          href={`/reports/aging/export?asOf=${asOfIso}`}
-          className="ml-auto bg-primary text-primary-foreground rounded-md px-3 py-2 text-sm"
-        >
-          Download CSV
-        </a>
+          <a href={`/reports/aging/export?asOf=${asOfIso}`}>
+            <Button type="button" className="h-8 w-full sm:w-auto">
+              Download CSV
+            </Button>
+          </a>
+        </FilterField>
       </form>
 
       <div className="grid gap-4 sm:grid-cols-4">

@@ -15,8 +15,11 @@ import {
   Users,
 } from 'lucide-react'
 import { cn } from 'cn'
-import { SiteFooter } from '@/components/site-footer'
 import { signOutAction } from '@/app/(auth)/actions'
+import { GlobalLogPaymentButton } from '@/components/global-log-payment'
+import { CommandPalette } from '@/components/command-palette'
+import { ThemeToggle } from '@/components/theme'
+import { KeyboardShortcuts } from '@/components/keyboard-shortcuts'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -79,6 +82,13 @@ export function AppShell({ userEmail, children }: Props) {
           </Link>
         </div>
 
+        <div className={cn('border-b p-2', !open && 'flex justify-center')}>
+          <GlobalLogPaymentButton
+            className={cn(open && 'w-full justify-start')}
+            compact={!open}
+          />
+        </div>
+
         <nav className="flex-1 space-y-1 p-2 text-sm" aria-label="Primary">
           {NAV.map((item) => {
             const Icon = item.icon
@@ -129,6 +139,14 @@ export function AppShell({ userEmail, children }: Props) {
             </button>
           </form>
 
+          <ThemeToggle
+            compact={!open}
+            className={cn(
+              'hover:bg-sidebar-accent hover:text-foreground w-full text-sm',
+              open ? 'justify-start gap-3 px-3' : 'justify-center px-0',
+            )}
+          />
+
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -153,11 +171,10 @@ export function AppShell({ userEmail, children }: Props) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-          {children}
-        </main>
-        <SiteFooter />
+        <main className="w-full flex-1 px-4 py-6">{children}</main>
       </div>
+      <CommandPalette />
+      <KeyboardShortcuts />
     </div>
   )
 }

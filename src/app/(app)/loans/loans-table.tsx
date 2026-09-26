@@ -2,8 +2,11 @@
 
 import Link from 'next/link'
 import { useState, useMemo } from 'react'
+import { CreditCard } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -12,7 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { EmptyState } from '@/components/empty-state'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
+import { loanStatusLabel } from '@/lib/labels'
+import { LoanRowActions } from './loan-row-actions'
 
 export interface LoanRow {
   id: string
@@ -35,7 +41,11 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase()
     return rows.filter((r) => {
-      if (!showClosed && (r.status === 'paid' || r.status === 'cancelled' || r.status === 'written_off')) return false
+      if (
+        !showClosed &&
+        (r.status === 'paid' || r.status === 'cancelled' || r.status === 'written_off')
+      )
+        return false
       if (!query) return true
       return (
         r.borrowerName.toLowerCase().includes(query) ||
@@ -43,6 +53,23 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
       )
     })
   }, [rows, q, showClosed])
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-lg border">
+        <EmptyState
+          icon={CreditCard}
+          title="No loans yet"
+          description="Log your first loan against a borrower. Balances, schedules, and reports appear as soon as you do."
+          action={
+            <Link href="/loans/new">
+              <Button>New loan</Button>
+            </Link>
+          }
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
@@ -53,11 +80,14 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
           onChange={(e) => setQ(e.target.value)}
           className="max-w-sm"
         />
-        <label className="text-muted-foreground flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <label
+          htmlFor="show-closed"
+          className="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm select-none"
+        >
+          <Checkbox
+            id="show-closed"
             checked={showClosed}
-            onChange={(e) => setShowClosed(e.target.checked)}
+            onCheckedChange={(v) => setShowClosed(v === true)}
           />
           Show closed
         </label>
@@ -73,49 +103,62 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
               <TableHead className="text-right">Balance</TableHead>
               <TableHead>Next due</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-muted-foreground py-6 text-center text-sm">
-                  {rows.length === 0
-                    ? 'No loans yet. Create a borrower first, then a loan.'
-                    : 'No loans match your filters.'}
+                <TableCell colSpan={8} className="text-muted-foreground py-6 text-center text-sm">
+                  No loans match your filters.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <Link href={`/loans/${r.id}`} className="font-medium hover:underline">
-                      {r.borrowerName}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{formatDate(r.startDate)}</TableCell>
-                  <TableCell className="tabular-nums">{formatPHP(r.principal)}</TableCell>
-                  <TableCell className="tabular-nums">{formatRate(Number(r.monthlyRate))}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPHP(r.currentBalance)}</TableCell>
-                  <TableCell className="text-sm">
-                    {r.nextDueDate ? (
-                      <>
-                        <div>{formatDate(r.nextDueDate)}</div>
-                        <div className="text-muted-foreground text-xs tabular-nums">
-                          {formatPHP(r.nextDueAmount)}
-                        </div>
-                      </>
-                    ) : (
-                      '—'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <Badge variant="outline">{r.status}</Badge>
-                      {r.isOverdue ? <Badge variant="destructive">overdue</Badge> : null}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              filtered.map((r) => {
+                const closed =
+                  r.status === 'paid' || r.status === 'cancelled' || r.status === 'written_off'
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <Link
+                        href={`/loans/${r.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {r.borrowerName}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatDate(r.startDate)}</TableCell>
+                    <TableCell className="tabular-nums">{formatPHP(r.principal)}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatRate(Number(r.monthlyRate))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatPHP(r.currentBalance)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {r.nextDueDate ? (
+                        <>
+                          <div>{formatDate(r.nextDueDate)}</div>
+                          <div className="text-muted-foreground text-xs tabular-nums">
+                            {formatPHP(r.nextDueAmount)}
+                          </div>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Badge variant="outline">{loanStatusLabel(r.status)}</Badge>
+                        {r.isOverdue ? <Badge variant="destructive">Overdue</Badge> : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <LoanRowActions loanId={r.id} disabled={closed} />
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>

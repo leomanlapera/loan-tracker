@@ -1,7 +1,8 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LoanForm, type BorrowerOption } from '../../loan-form'
+import { BackLink } from '@/components/back-link'
+import { Card, CardContent } from '@/components/ui/card'
 import type { LoanInput } from '@/lib/validation/loan'
 
 export default async function EditLoanPage({ params }: { params: Promise<{ id: string }> }) {
@@ -67,9 +68,7 @@ export default async function EditLoanPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/loans/${id}`} className="text-muted-foreground text-sm hover:underline">
-          ← Back to loan
-        </Link>
+        <BackLink href={`/loans/${id}`}>Back to loan</BackLink>
       </div>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Edit loan</h1>
@@ -79,18 +78,22 @@ export default async function EditLoanPage({ params }: { params: Promise<{ id: s
           </p>
         ) : null}
       </div>
-      <LoanForm
-        mode="edit"
-        loanId={id}
-        borrowers={options}
-        initial={initial}
-        editingLocked={{
-          principal: hasPayments,
-          monthlyRate: hasPayments,
-          startDate: hasPayments,
-          interestMethod: hasPayments,
-        }}
-      />
+      <Card>
+        <CardContent>
+          <LoanForm
+            mode="edit"
+            loanId={id}
+            borrowers={options}
+            initial={initial}
+            editingLocked={{
+              principal: hasPayments,
+              monthlyRate: hasPayments,
+              startDate: hasPayments,
+              interestMethod: hasPayments,
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,18 +1,35 @@
 'use client'
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { GroupBy } from '@/lib/reports/collections'
 
 interface Props {
   value: GroupBy
 }
 
+const OPTIONS: { value: GroupBy; label: string }[] = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+]
+
+const LABELS: Record<string, string> = Object.fromEntries(OPTIONS.map((o) => [o.value, o.label]))
+
 export function GroupBySelect({ value }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
 
-  const onChange = (next: string) => {
+  const onChange = (next: string | null) => {
+    if (!next) return
     const search = new URLSearchParams(params.toString())
     search.set('groupBy', next)
     router.push(`${pathname}?${search.toString()}`)
@@ -20,20 +37,21 @@ export function GroupBySelect({ value }: Props) {
 
   return (
     <div className="space-y-1">
-      <label htmlFor="groupBy" className="text-xs font-medium">
+      <Label htmlFor="groupBy" className="text-xs">
         Group by
-      </label>
-      <select
-        id="groupBy"
-        name="groupBy"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="border-input rounded-md border px-3 py-2 text-sm"
-      >
-        <option value="day">Day</option>
-        <option value="week">Week</option>
-        <option value="month">Month</option>
-      </select>
+      </Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id="groupBy" className="min-w-32">
+          <SelectValue>{(v) => LABELS[String(v ?? 'month')] ?? 'Month'}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }

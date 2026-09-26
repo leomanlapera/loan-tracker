@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import { borrowerSchema, type BorrowerInput } from '@/lib/validation/borrower'
 import { createBorrower, updateBorrower } from './actions'
 import { Field } from '@/components/form/field'
@@ -53,8 +54,10 @@ export function BorrowerForm({ mode, borrowerId, initial }: Props) {
           }
         }
         setFormError(result.error)
+        toast.error(result.error)
         return
       }
+      toast.success(mode === 'create' ? 'Borrower created' : 'Borrower saved')
       router.push(mode === 'create' ? `/borrowers/${result.id}` : `/borrowers/${borrowerId}`)
       router.refresh()
     })
