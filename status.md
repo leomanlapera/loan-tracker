@@ -67,12 +67,6 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - `supabase/config.toml` linked to remote project ref `skmwpbkrdsxlhlgsprmq`
 - `supabase/migrations/` folder ready for Phase 2 schema
 
-**CI/CD**
-- `.github/workflows/ci.yml`
-  - `quality` job: lint → typecheck → vitest
-  - `e2e` job: Playwright Chromium with report artifact on failure
-  - Env vars read from GitHub Actions secrets (with dummy fallbacks)
-
 **Config**
 - `.nvmrc` → Node 20
 - `.prettierrc` + `.prettierignore`
@@ -97,15 +91,13 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 
 ## Setup to-dos for the maintainer
 
-Before Phase 2 lands in CI with real backend access:
+1. **Supabase Dashboard** → Auth → URL Configuration → Site URL: `http://localhost:3000` for dev.
+2. **`supabase link --project-ref skmwpbkrdsxlhlgsprmq`** once the CLI is installed.
+3. **Vercel** — `vercel link`, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` as environment variables.
 
-1. **GitHub Actions secrets** (Settings → Secrets and variables → Actions):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-2. **Supabase Dashboard** → Auth → URL Configuration → Site URL: `http://localhost:3000` for dev.
-3. **`supabase link --project-ref skmwpbkrdsxlhlgsprmq`** once the CLI is installed.
-4. **Vercel** — `vercel link`, add the three env vars above.
+## CI
+
+Not configured. Quality checks run locally via `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm e2e`. Re-add a GitHub Actions workflow when the account can host runners (private repos require a paid plan for Actions minutes beyond the free tier).
 
 ## Up next
 
