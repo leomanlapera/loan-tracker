@@ -1,18 +1,18 @@
 # Loan Tracker
 
-A web app for private lenders in the Philippines to record loans, log payments, and see what borrowers owe. Supports monthly compounding or simple interest, lump-sum or installment repayment, with reports on collections, interest earned, and overdue accounts.
+A web app for private lenders in the Philippines to record loans, log payments, and see what borrowers owe. Supports monthly compounding or simple interest, lump-sum or installment repayment, with a dashboard and six reports on collections, interest earned, and overdue accounts.
 
 See [`loan_tracker_prd.md`](./loan_tracker_prd.md) for the full product spec, [`phases/`](./phases) for the delivery plan, and [`STATUS.md`](./STATUS.md) for the current build state.
 
 ## Stack
 
-- **Next.js 16** — App Router, TypeScript, Server Actions
-- **Supabase** — Auth + Postgres with Row Level Security
+- **Next.js 16** — App Router, TypeScript, Server Actions, Turbopack
+- **Supabase** — Auth + Postgres with Row Level Security; typed via generated `Database`
 - **decimal.js** — money math (never JS floats)
 - **Zod** — schema validation shared between forms and Server Actions
-- **Tailwind + shadcn/ui** — UI
-- **Recharts** — charts
-- **Vitest + Playwright** — engine unit tests and e2e smoke
+- **Tailwind v4 + shadcn/ui** (base-ui variant)
+- **Recharts** — balance-over-time chart on the loan detail page
+- **Vitest + Playwright** — engine unit tests, RLS integration tests, e2e smoke
 - **Vercel** — hosting
 
 ## Prerequisites
@@ -42,15 +42,32 @@ Once `.env.local` is filled in, wire the repo to your Supabase project:
 pnpm exec supabase login                                   # interactive, opens a browser
 pnpm exec supabase link --project-ref YOUR-PROJECT-REF     # ref lives in supabase/config.toml
 pnpm db:push                                               # applies all migrations to the remote
+pnpm db:types                                              # regenerate database.types.ts after any schema change
 ```
 
-In the Supabase Dashboard → Auth → URL Configuration, set **Site URL** to `http://localhost:3000` so email confirmation links resolve correctly in dev.
+In the Supabase Dashboard → Auth → URL Configuration, set **Site URL** to `http://localhost:3000` (and any deployed URLs) so email confirmation links resolve.
 
 Verify RLS is enforced with the integration suite:
 
 ```bash
 pnpm test:integration
 ```
+
+## Features (MVP through Phase 5)
+
+- **Auth** — email + password with confirmation, password reset, account deletion (RA 10173)
+- **Borrowers** — CRUD, search, archive, delete-guarded when active loans exist
+- **Loans** — CRUD with live engine preview, edit-gating when payments exist, custom repayment schedules, §10 written-agreement checkbox
+- **Payments** — log/edit/soft-delete/restore with engine-based overpayment rejection and "pay off" shortcut
+- **Loan detail page** — summary tiles, full schedule with status chips, payment log, compound-vs-simple chart
+- **Dashboard** — every PRD §5.6 tile: outstanding, interest earned (this month / this year / all time), collections this month, overdue, due-in-7, recent payments
+- **Reports** (all with date filters and CSV export)
+  - Portfolio summary
+  - Borrower statement
+  - Collections (day/week/month × method)
+  - Interest income (per-month interest portion of payments)
+  - Aging (1-30 / 31-60 / 61-90 / 90+)
+  - Write-offs
 
 ## Scripts
 
@@ -61,14 +78,15 @@ pnpm test:integration
 | `pnpm start` | Serve the production build |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | Vitest (engine + unit) |
+| `pnpm test` | Vitest (engine + CSV util) |
 | `pnpm test:watch` | Vitest watch mode |
 | `pnpm test:integration` | Two-user RLS tests against the linked Supabase project |
 | `pnpm e2e` | Playwright end-to-end tests |
 | `pnpm format` | Prettier write |
 | `pnpm db:diff` | Generate a migration from local schema changes |
-| `pnpm db:reset` | Rebuild the local Supabase DB from migrations |
+| `pnpm db:reset` | Rebuild the DB from migrations (local or `--linked` for remote) |
 | `pnpm db:push` | Push migrations to the linked remote project |
+| `pnpm db:types` | Regenerate `src/lib/supabase/database.types.ts` from the linked project |
 
 Anything else the CLI exposes is reachable via `pnpm exec supabase ...`.
 
@@ -77,22 +95,34 @@ Anything else the CLI exposes is reachable via `pnpm exec supabase ...`.
 ```
 src/
   app/
-    (app)/               # authenticated routes (dashboard, borrowers, loans, ...)
-    (auth)/              # login, sign-up, reset-password
-    auth/callback/       # email-link handler
+    (app)/                 # authenticated routes
+      dashboard/           # PRD §5.6 tiles + lists
+      borrowers/           # list, new, [id] with inline edit/archive/delete
+      loans/               # list, new, [id] detail + payments + chart, [id]/edit
+      reports/             # 6 reports + CSV export route handlers
+    (auth)/                # login, sign-up, reset-password
+    auth/callback/         # email-link handler
   components/
-    auth/                # small pieces used by auth pages
-    ui/                  # shadcn/ui primitives
+    auth/                  # auth-form pieces
+    form/                  # Field wrapper
+    reports/               # DateRangeForm
+    ui/                    # shadcn/ui primitives
   lib/
-    engine/              # pure TS calculation engine (see PRD §6)
-    supabase/            # client/server/middleware/admin helpers
-    validation/          # Zod schemas
-integration/             # RLS test suite (test:integration)
+    engine/                # pure TS calculation engine (see PRD §6)
+      compute.ts           # main walk (schedule + summary)
+      allocate.ts          # per-payment {toInterest, toPrincipal}
+      pmt.ts / money.ts / period.ts / validate.ts / types.ts
+    reports/               # loans, date-range, collections, interest, aging
+    supabase/              # client, server, middleware, admin, database.types
+    validation/            # Zod schemas (auth, borrower, loan, payment)
+    csv.ts                 # RFC 4180 CSV + Response helper
+    format.ts              # en-PH currency, dates, rate formatting
+integration/               # RLS test suite (test:integration)
 supabase/
-  migrations/            # SQL migrations, committed and pushed via db:push
-  config.toml            # links to the remote project
-tests/                   # Playwright specs
-phases/                  # delivery plan
+  migrations/              # SQL migrations, committed and pushed via db:push
+  config.toml              # links to the remote project
+tests/                     # Playwright specs
+phases/                    # delivery plan
 ```
 
 ## Environment variables
