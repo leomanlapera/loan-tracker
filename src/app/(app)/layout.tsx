@@ -5,6 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import { signOutAction } from '@/app/(auth)/actions'
 import { Button } from '@/components/ui/button'
 
+const NAV = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/borrowers', label: 'Borrowers' },
+  { href: '/loans', label: 'Loans' },
+]
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
   const {
@@ -16,10 +22,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-full flex-col">
       <header className="border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href="/dashboard" className="text-lg font-semibold">
-            Loan Tracker
-          </Link>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard" className="text-lg font-semibold">
+              Loan Tracker
+            </Link>
+            <nav className="flex items-center gap-4 text-sm">
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <div className="text-muted-foreground flex items-center gap-3 text-sm">
             <span className="hidden sm:inline">{user.email}</span>
             <form action={signOutAction}>
               <Button type="submit" variant="ghost" size="sm">

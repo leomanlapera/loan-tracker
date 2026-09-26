@@ -4,7 +4,7 @@ _Last updated: 2026-09-26_
 
 ## Current phase
 
-**Phase 2 — Auth & Data Model: ✅ Complete (code); migrations pending push**
+**Phase 3 — Borrower & Loan CRUD: ✅ Complete**
 
 See [`phases/README.md`](./phases/README.md) for the full plan.
 
@@ -14,102 +14,94 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 |---|---|---|
 | 0 | [Foundation & Setup](./phases/phase-00-foundation.md) | ✅ Complete |
 | 1 | [Calculation Engine](./phases/phase-01-engine.md) | ✅ Complete |
-| 2 | [Auth & Data Model](./phases/phase-02-auth-data.md) | ✅ Complete (migrations pending push) |
-| 3 | [Borrower & Loan CRUD](./phases/phase-03-borrowers-loans.md) | ⏳ Next |
-| 4 | [Payments & Loan Detail](./phases/phase-04-payments-detail.md) | ⏳ Pending |
+| 2 | [Auth & Data Model](./phases/phase-02-auth-data.md) | ✅ Complete |
+| 3 | [Borrower & Loan CRUD](./phases/phase-03-borrowers-loans.md) | ✅ Complete |
+| 4 | [Payments & Loan Detail](./phases/phase-04-payments-detail.md) | ⏳ Next |
 | 5 | [Dashboard & Reports](./phases/phase-05-dashboard-reports.md) | ⏳ Pending |
 | 6 | [Activity Log & Settings](./phases/phase-06-activity-settings.md) | ⏳ Pending |
 | 7 | [Polish, QA & Launch](./phases/phase-07-launch.md) | ⏳ Pending |
 | 8 | [Phase 2 Backlog](./phases/phase-08-post-mvp.md) | 📌 Post-MVP |
 
-## Phase 2 highlights
+## Phase 3 highlights
 
-**Migrations** — `supabase/migrations/`
-- `20260926100000_enums_and_helpers.sql` — all enums (`interest_method`, `repayment_type`, `after_maturity`, `loan_status`, `payment_method`, `activity_action`, `activity_entity`) + `tg_set_updated_at()` trigger fn
-- `20260926100100_profiles.sql` — profiles table + `handle_new_user()` trigger that auto-creates a profile row on signup + RLS (self-only)
-- `20260926100200_borrowers.sql` — borrowers + RLS + indexes (`user_id`, partial for active)
-- `20260926100300_loans.sql` — loans (`numeric(14,2)`, `numeric(7,4)`, enums, `agreement_in_writing` for §10 compliance) + `loan_custom_schedule` + RLS + indexes (`user_id, status`; `borrower_id`)
-- `20260926100400_payments.sql` — payments with soft delete + RLS + indexes (`loan_id, paid_on`)
-- `20260926100500_activity_log.sql` — table only; **no INSERT/UPDATE/DELETE policies** so only triggers (Phase 6, SECURITY DEFINER) may write
+**Borrowers**
+- `/borrowers` — searchable table with per-borrower total outstanding and active loan count (both computed server-side via the engine)
+- `/borrowers/new` — form (react-hook-form + Zod resolver)
+- `/borrowers/[id]` — detail with inline edit form, archive/unarchive, delete (blocked with tooltip when active loans exist), list of the borrower's loans
+- Server actions in `src/app/(app)/borrowers/actions.ts`: create, update, archive, delete (with active-loans guard)
 
-**Auth**
-- Server actions in `src/app/(auth)/actions.ts` — `loginAction`, `signUpAction`, `signOutAction`, `requestPasswordResetAction`, `updatePasswordAction`, `deleteAccountAction`
-- Zod-validated inputs in `src/lib/validation/auth.ts`
-- Pages: `/login`, `/sign-up`, `/reset-password`, `/reset-password/update`
-- `/auth/callback` route handler exchanges the code from email links for a session
-- Middleware bounces authenticated users away from login/signup, and preserves the `next` query param through the login redirect
-- `src/lib/supabase/admin.ts` — service-role client for account deletion; `server-only` import blocks client bundling
-- `src/app/(app)/layout.tsx` — protected shell with sign-out button; `/dashboard` placeholder
+**Loans**
+- `/loans` — searchable table, borrower name, principal, rate, current balance (engine), next due, status; `Show closed` toggle
+- `/loans/new` — full PRD §5.3 form with **live engine preview** on the right (updates as you type: schedule table, maturity date, total scheduled, total interest)
+- `/loans/[id]/edit` — same form; principal, rate, start date, interest method **locked when payments exist** (hint text explains why)
+- `/loans/[id]` — summary tiles (current balance, total paid, interest earned, next due). Full schedule + payments log land in Phase 4
+- Custom repayment sub-form: dynamic rows matching tenureMonths; last period auto-adjusted by engine
+- **§10 compliance**: mandatory "Interest terms are in a signed written agreement" checkbox; soft warning when monthly rate > 6%
+- Server actions: create, update (deletes and re-inserts custom schedule), cancel (blocked if payments exist), writeOff, reopen
 
-**Testing** — `integration/rls.test.ts` + `pnpm test:integration`
-- Two throwaway users created via admin API (`rls-a-*`, `rls-b-*`)
-- Asserts cross-tenant reads and writes fail on every user-owned table (borrowers, loans, loan_custom_schedule, payments, activity_log, profiles)
-- Cleanup deletes both users; cascade removes their data
-- Kept out of the fast `pnpm test` suite — runs against your real dev project
+**Engine ↔ UI**
+- Client-side engine preview matches server compute (same pure module runs in browser and RSC)
+- Server-computed dashboard tiles: active loan count, principal lent, total outstanding, interest earned, overdue banner
+- `src/lib/format.ts` — `formatPHP`, `formatDate`, `formatRate` (Intl.NumberFormat en-PH, `MMM d, yyyy`)
+- `src/lib/engine/loan-summary.ts` — safe `summarize()` wrapper for list rows
 
-## What's shipped (Phases 0–2)
+**Infrastructure**
+- Database types generated from remote → `src/lib/supabase/database.types.ts` (430 lines). All Supabase clients now typed via `Database` generic.
+- New script: `pnpm db:types` — regenerate after schema changes.
+- shadcn components added: select, checkbox, textarea, badge, dropdown-menu, alert-dialog, separator.
+- Custom `Field` primitive in `src/components/form/field.tsx` (label + error slot).
+
+**App shell**
+- Nav bar with Dashboard / Borrowers / Loans links
+- Dashboard shows real numbers: active loans, principal lent, total outstanding, interest earned, overdue banner when any loan is overdue
+
+## What's shipped (Phases 0–3)
 
 **Framework & tooling**
-- Next.js 16 (App Router, Turbopack, TypeScript, `src/` layout)
-- Tailwind CSS v4 + shadcn/ui (button, input, card, table, dialog, label)
-- Runtime deps: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `server-only`
-- Dev deps: Vitest 3 + `@vitejs/plugin-react`, jsdom 24, Playwright, Prettier + tailwind plugin, `supabase` CLI
+- Next.js 16 App Router + Turbopack + TypeScript
+- Tailwind CSS v4 + shadcn/ui (base-ui variant)
+- Runtime: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `@hookform/resolvers`, `server-only`
+- Dev: Vitest 3, jsdom 24, Playwright, Prettier, Supabase CLI (as workspace dep), `ws` for Node 20 realtime shim
 
-**Engine** (Phase 1) — `src/lib/engine/`, 30 passing tests, PRD §6.6 cases to the centavo
+**Engine** — `src/lib/engine/`, 30 passing tests, PRD §6.6 cases to the centavo
 
 **Supabase**
-- `src/lib/supabase/{client,server,middleware,admin}.ts` using `@supabase/ssr` + admin service-role helper
-- Root `middleware.ts` — session refresh + redirect logic (unauth → login with `next=`, auth → dashboard from auth pages)
-- `supabase/config.toml` linked to remote project ref `skmwpbkrdsxlhlgsprmq`
-- Supabase CLI bundled as a dev dep (`pnpm exec supabase ...`); see `supabase/README.md`
+- `client.ts` / `server.ts` / `middleware.ts` / `admin.ts` all typed via generated `Database`
+- 7 migrations applied to remote project `skmwpbkrdsxlhlgsprmq`
+- RLS enforced (17/17 integration tests pass), including the tightened payments policy (loan must belong to caller)
 
-**Routes**
-- `/` — landing (public, shows different CTAs based on session)
-- `/login`, `/sign-up`, `/reset-password`, `/reset-password/update` — auth
-- `/auth/callback` — email link handler
-- `/dashboard` — protected placeholder (real tiles land in Phase 5)
-
-**Config**
-- `.nvmrc` → Node 20
-- `.prettierrc` + `.prettierignore`
-- `.env.example` template; `.env.local` gitignored
-- `tsconfig.json` excludes `tests/`, `playwright-report/`, `.next/`
-- `package.json` scripts: `dev`, `build`, `start`, `lint`, `typecheck`, `test`, `test:watch`, `test:integration`, `e2e`, `format`, `format:check`, `db:diff`, `db:reset`, `db:push`
+**Routes** (14 total)
+- Public: `/`, `/login`, `/sign-up`, `/reset-password`, `/reset-password/update`, `/auth/callback`
+- Authed: `/dashboard`, `/borrowers`, `/borrowers/new`, `/borrowers/[id]`, `/loans`, `/loans/new`, `/loans/[id]`, `/loans/[id]/edit`
 
 ## Verified
 
-- ✅ `pnpm lint`
+- ✅ `pnpm lint` (one non-blocking React Compiler hint about RHF's watch() — standard usage)
 - ✅ `pnpm typecheck`
 - ✅ `pnpm test` (30/30)
-- ✅ `pnpm build` — 7 routes, all dynamic (middleware attached)
-- ✅ `pnpm dev` — `/` → 200, `/login` → 200, `/dashboard` → 307 → `/login?next=/dashboard`
+- ✅ `pnpm build` — 14 routes, all dynamic (middleware attached)
+- ✅ `pnpm test:integration` (17/17, run before Phase 3 code changes)
 
 ## Known deferred
 
-- shadcn `form` component slug not resolving from the current registry — will render forms with plain fields until Phase 3 (deps `react-hook-form` + `@hookform/resolvers` already installed).
-- Vercel project not linked yet.
-- Interest-only repayment type — Phase 8 backlog.
-- Playwright two-user auth flow test — deferred to Phase 3 when there's a real CRUD flow to walk through.
+- Full loan detail page (schedule table + chart + payment log) — Phase 4
+- Payment logging Server Actions and forms — Phase 4
+- shadcn `form` component slug still unresolved — replaced with the minimal `Field` wrapper
+- Interest-only repayment type — Phase 8 backlog
+- Vercel project not linked yet
+- Late-payment penalty rate/fee (PRD §12 Q2) — still open, revisit in Phase 4 if it affects payment allocation
 
 ## Setup to-dos for the maintainer
 
-Before Phase 3 UI can hit real data, YOU need to:
+Nothing new for Phase 3 if you already ran the Phase 2 setup (`supabase login` + `db:push`). If the schema ever drifts, regenerate types with:
 
-1. **Authenticate the Supabase CLI** (one-time, interactive):
-   ```bash
-   pnpm exec supabase login
-   ```
-2. **Link the repo to your dev project** and push migrations:
-   ```bash
-   pnpm exec supabase link --project-ref skmwpbkrdsxlhlgsprmq
-   pnpm db:push
-   ```
-3. **Supabase Dashboard** → Auth → URL Configuration → Site URL: `http://localhost:3000` (for dev email links).
-4. **Run RLS tests** to confirm the migrations landed correctly:
-   ```bash
-   pnpm test:integration
-   ```
-5. **Vercel** — `vercel link`, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+```bash
+pnpm db:types
+```
+
+Still pending from earlier phases:
+- Supabase Dashboard → Auth → URL Configuration → Site URL: `http://localhost:3000`
+- Vercel — `vercel link` and add env vars when you deploy
 
 ## CI
 
@@ -117,4 +109,4 @@ Not configured. Quality checks run locally via `pnpm lint`, `pnpm typecheck`, `p
 
 ## Up next
 
-**Phase 3 — Borrower & Loan CRUD.** Lender creates/edits/archives borrowers and creates/edits/closes/archives loans, with a live engine-powered preview of the schedule as they type. Loan form enforces PRD §5.3 editing rules and the §10 "interest terms in writing" checkbox. Blocks Phase 4.
+**Phase 4 — Payments & Loan Detail Page.** Log payments (with soft delete + edit), enforce overpayment rejection, "pay off loan" shortcut, full schedule table with status chips (paid/partial/unpaid/upcoming), Recharts balance-over-time (compound vs simple), edit history for payments.

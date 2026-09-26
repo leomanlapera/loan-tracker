@@ -1,5 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from './database.types'
 
 /**
  * Service-role client. Bypasses RLS. Server-only — the `server-only` import
@@ -16,7 +17,7 @@ export function createAdminClient() {
       'createAdminClient: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set',
     )
   }
-  return createClient(url, key, {
+  return createClient<Database>(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }
