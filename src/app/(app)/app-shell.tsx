@@ -8,13 +8,13 @@ import {
   ClipboardList,
   CreditCard,
   LayoutDashboard,
-  Menu,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Users,
-  X,
 } from 'lucide-react'
 import { cn } from 'cn'
-import { Button } from '@/components/ui/button'
 import { SiteFooter } from '@/components/site-footer'
 import { signOutAction } from '@/app/(auth)/actions'
 
@@ -38,9 +38,6 @@ export function AppShell({ userEmail, children }: Props) {
   const pathname = usePathname()
   const [open, setOpen] = useState(true)
 
-  // Hydrate saved sidebar state after mount. SSR and first client render both
-  // use `true` so hydration matches; the setState below is intentional — it
-  // reflects a value that literally can't exist during SSR (localStorage).
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY)
@@ -57,46 +54,32 @@ export function AppShell({ userEmail, children }: Props) {
     } catch {}
   }, [open])
 
-  const closeOnMobile = () => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) setOpen(false)
-  }
-
   return (
-    <div className="relative flex min-h-screen">
-      {open ? (
-        <button
-          type="button"
-          aria-label="Close navigation"
-          onClick={() => setOpen(false)}
-          className="fixed inset-0 z-30 bg-black/30 md:hidden"
-        />
-      ) : null}
-
+    <div className="flex min-h-screen">
       <aside
         className={cn(
-          'bg-sidebar text-sidebar-foreground fixed inset-y-0 left-0 z-40 flex w-56 shrink-0 flex-col border-r',
-          'transition-transform duration-200 will-change-transform',
-          !open && '-translate-x-full',
-          'md:sticky md:top-0 md:z-0 md:h-screen',
-          !open && 'md:hidden',
+          'bg-sidebar text-sidebar-foreground sticky top-0 z-40 flex h-screen shrink-0 flex-col border-r',
+          'transition-[width] duration-200 will-change-[width]',
+          open ? 'w-56' : 'w-14',
         )}
-        aria-hidden={!open}
+        aria-label="Primary navigation"
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <Link href="/dashboard" className="text-lg font-semibold" onClick={closeOnMobile}>
-            Loan Tracker
-          </Link>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="hover:bg-sidebar-accent rounded-md p-1 md:hidden"
-            aria-label="Close navigation"
+        <div
+          className={cn(
+            'flex h-14 items-center border-b',
+            open ? 'px-4' : 'justify-center px-2',
+          )}
+        >
+          <Link
+            href="/dashboard"
+            className="truncate text-lg font-semibold"
+            title={open ? undefined : 'Loan Tracker'}
           >
-            <X className="size-4" />
-          </button>
+            {open ? 'Loan Tracker' : 'LT'}
+          </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3 text-sm" aria-label="Primary">
+        <nav className="flex-1 space-y-1 p-2 text-sm" aria-label="Primary">
           {NAV.map((item) => {
             const Icon = item.icon
             const active =
@@ -105,56 +88,72 @@ export function AppShell({ userEmail, children }: Props) {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={closeOnMobile}
                 aria-current={active ? 'page' : undefined}
+                title={open ? undefined : item.label}
                 className={cn(
-                  'flex items-center gap-2 rounded-md px-3 py-2 transition-colors',
+                  'flex items-center gap-3 rounded-md py-2 text-sm transition-colors',
+                  open ? 'px-3' : 'justify-center px-0',
                   active
                     ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                     : 'hover:bg-sidebar-accent/50',
                 )}
               >
-                <Icon className="size-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <Icon className="size-4 shrink-0" aria-hidden />
+                {open ? <span className="truncate">{item.label}</span> : null}
               </Link>
             )
           })}
         </nav>
 
-        <div className="text-muted-foreground border-t px-4 py-3 text-xs">
-          Signed in as
-          <div className="text-foreground truncate text-sm font-medium">{userEmail}</div>
+        <div className="space-y-1 border-t p-2">
+          {open ? (
+            <div className="text-muted-foreground px-3 py-1 text-xs">
+              Signed in as
+              <div className="text-foreground truncate text-sm font-medium">
+                {userEmail}
+              </div>
+            </div>
+          ) : null}
+
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              title={open ? undefined : `Sign out (${userEmail})`}
+              className={cn(
+                'hover:bg-sidebar-accent flex w-full items-center gap-3 rounded-md py-2 text-sm transition-colors',
+                open ? 'px-3' : 'justify-center px-0',
+              )}
+            >
+              <LogOut className="size-4 shrink-0" aria-hidden />
+              {open ? <span>Sign out</span> : null}
+            </button>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-expanded={open}
+            title={open ? 'Collapse sidebar' : 'Expand sidebar'}
+            className={cn(
+              'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground flex w-full items-center gap-3 rounded-md py-2 text-sm transition-colors',
+              open ? 'px-3' : 'justify-center px-0',
+            )}
+          >
+            {open ? (
+              <>
+                <PanelLeftClose className="size-4 shrink-0" aria-hidden />
+                <span>Collapse</span>
+              </>
+            ) : (
+              <PanelLeftOpen className="size-4 shrink-0" aria-hidden />
+            )}
+          </button>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
-            <button
-              type="button"
-              onClick={() => setOpen((v) => !v)}
-              className="hover:bg-muted rounded-md p-2"
-              aria-label={open ? 'Hide navigation' : 'Show navigation'}
-              aria-expanded={open}
-              aria-controls="primary-navigation"
-            >
-              <Menu className="size-4" />
-            </button>
-            <div className="text-muted-foreground flex items-center gap-3 text-sm">
-              <span className="hidden sm:inline">{userEmail}</span>
-              <form action={signOutAction}>
-                <Button type="submit" variant="ghost" size="sm">
-                  Sign out
-                </Button>
-              </form>
-            </div>
-          </div>
-        </header>
-
-        <main
-          id="primary-navigation"
-          className="mx-auto w-full max-w-6xl flex-1 px-4 py-6"
-        >
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
           {children}
         </main>
         <SiteFooter />
