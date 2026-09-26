@@ -167,6 +167,41 @@ describe('RLS — activity_log', () => {
     })
     expect(error).not.toBeNull()
   })
+
+  it('trigger records borrower create/update/delete for the acting user', async () => {
+    const { data: created } = await userA.client
+      .from('borrowers')
+      .insert({ user_id: userA.id, full_name: 'Audit Target' })
+      .select('id')
+      .single()
+    const id = created!.id
+    await userA.client.from('borrowers').update({ mobile: '09171234567' }).eq('id', id)
+    await userA.client.from('borrowers').delete().eq('id', id)
+
+    const { data: logs, error } = await userA.client
+      .from('activity_log')
+      .select('action, entity_type, entity_id')
+      .eq('entity_id', id)
+      .order('created_at', { ascending: true })
+    expect(error).toBeNull()
+    const actions = (logs ?? []).map((r) => r.action)
+    expect(actions).toContain('create')
+    expect(actions).toContain('update')
+    expect(actions).toContain('delete')
+    for (const log of logs ?? []) {
+      expect(log.entity_type).toBe('borrower')
+    }
+  })
+
+  it("user B cannot see the activity_log rows from user A's mutations", async () => {
+    const { data: aRows } = await userA.client
+      .from('activity_log')
+      .select('id')
+    const aCount = aRows?.length ?? 0
+    const { data: bRows } = await userB.client.from('activity_log').select('id')
+    expect(bRows ?? []).toEqual([])
+    expect(aCount).toBeGreaterThan(0)
+  })
 })
 
 describe('RLS — profiles', () => {
