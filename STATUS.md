@@ -76,6 +76,9 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
 - **Node 20 realtime shim** for the Supabase integration tests
 
+**Polish batch #7 (2026-09-26)**
+- **Keyboard shortcut cheatsheet** — press `?` anywhere to open a Dialog listing every shortcut (⌘K/Ctrl+K, `/`, `?`, `n`). Grouped by Navigation / Actions with per-row `<kbd>` chips. Also opened programmatically via `window.dispatchEvent(new Event('shortcuts:open'))` — wired to a "Keyboard shortcuts" row in the mobile "More" sheet.
+
 **Polish batch #6 (2026-09-26)**
 - **Mobile bottom tab bar** — on `<md` viewports the sidebar is hidden (`hidden md:flex`) and a fixed bottom bar takes over (Home / Loans / **[+ Log payment]** / Borrowers / More). The center "+" is a raised primary-tinted circle that opens the existing `<GlobalLogPaymentButton>` dialog. Main content gets `pb-24 md:pb-6` so nothing hides under the bar. `env(safe-area-inset-bottom)` respected for iOS notches.
 - **"More" sheet** — Dialog with Reports, Activity, Settings + a divider, then Theme toggle and Sign out (with "Signed in as {email}" header). Tapping a link auto-closes via `<DialogClose render={<Link />}>`.

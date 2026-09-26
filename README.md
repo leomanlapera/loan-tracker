@@ -82,7 +82,7 @@ pnpm test:integration
 - **Cmd/Ctrl + K** command palette — search borrowers and loans from anywhere; empty-query state shows a "Recent" section powered by a localStorage ring buffer
 - **⌘K hint chip** in `/borrowers` and `/loans` search inputs
 - **Global "Log payment"** button in the sidebar and dashboard header — inline loan picker, one-click flow
-- **Keyboard shortcuts** — `n` (context-aware new), `/` (focus search)
+- **Keyboard shortcuts** — `n` (context-aware new), `/` (focus search), `?` (open cheatsheet dialog)
 - **Sidebar** (≥md) — icon-collapse mode with sign-out, theme toggle, collapse control at bottom
 - **Mobile bottom tab bar** (<md) — Home / Loans / raised "+" (Log payment) / Borrowers / More; More sheet holds Reports, Activity, Settings, theme, sign out
 - **Dark mode** — light / dark / system, persisted, no FOUC

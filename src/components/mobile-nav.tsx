@@ -7,6 +7,7 @@ import {
   BarChart3,
   ClipboardList,
   CreditCard,
+  Keyboard,
   LayoutDashboard,
   LogOut,
   MoreHorizontal,
@@ -137,6 +138,20 @@ export function MobileNav({ userEmail }: Props) {
               </div>
             </div>
             <ThemeToggle className="hover:bg-accent w-full justify-start gap-3 px-3 py-2 text-sm" />
+            <DialogClose
+              render={
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.dispatchEvent(new Event('shortcuts:open'))
+                  }
+                  className="hover:bg-accent flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors"
+                />
+              }
+            >
+              <Keyboard className="size-4 shrink-0" aria-hidden />
+              <span>Keyboard shortcuts</span>
+            </DialogClose>
             <form action={signOutAction}>
               <button
                 type="submit"
