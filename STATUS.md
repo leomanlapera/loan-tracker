@@ -4,7 +4,7 @@ _Last updated: 2026-09-26_
 
 ## Current phase
 
-**Phase 5 — Dashboard & Reports: ✅ Complete**
+**Phase 6 — Activity Log & Settings: ✅ Complete**
 
 See [`phases/README.md`](./phases/README.md) for the full plan.
 
@@ -18,78 +18,80 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 | 3 | [Borrower & Loan CRUD](./phases/phase-03-borrowers-loans.md) | ✅ Complete |
 | 4 | [Payments & Loan Detail](./phases/phase-04-payments-detail.md) | ✅ Complete |
 | 5 | [Dashboard & Reports](./phases/phase-05-dashboard-reports.md) | ✅ Complete |
-| 6 | [Activity Log & Settings](./phases/phase-06-activity-settings.md) | ⏳ Next |
-| 7 | [Polish, QA & Launch](./phases/phase-07-launch.md) | ⏳ Pending |
+| 6 | [Activity Log & Settings](./phases/phase-06-activity-settings.md) | ✅ Complete |
+| 7 | [Polish, QA & Launch](./phases/phase-07-launch.md) | ⏳ Next |
 | 8 | [Phase 2 Backlog](./phases/phase-08-post-mvp.md) | 📌 Post-MVP |
 
-## Phase 5 highlights
+## Phase 6 highlights
 
-**Engine additions**
-- `src/lib/engine/allocate.ts` — new `allocatePayments()` returns per-payment `{toInterest, toPrincipal, periodIndex}`. Within a period, earlier payments consume interest first.
-- Vitest: 3 new cases (matches PRD Case 2 allocation to the centavo, reconciles totals with `compute().interestEarnedToDate`, respects payment order inside a period)
+**Activity log triggers** — `supabase/migrations/20260926110000_activity_log_triggers.sql`
+- One `SECURITY DEFINER` trigger fn per user-owned table: `log_borrower_activity`, `log_loan_activity`, `log_payment_activity`, `log_loan_custom_schedule_activity`
+- `activity_log` still has NO write policies for regular users — only these triggers may insert
+- Acting user resolved via `auth.uid()`, with `NEW.user_id` / `OLD.user_id` fallback for service-role writes (seeding, etc.)
+- `loan_custom_schedule` joins `loans` to resolve ownership
+- UPDATE trigger short-circuits if `to_jsonb(new) = to_jsonb(old)` — no phantom rows from no-op updates
 
-**CSV utility** — `src/lib/csv.ts`
-- RFC 4180 escaping, ISO dates, numbers pass through unquoted, BOM prefix so Excel opens en-PH characters cleanly
-- `csvResponse(filename, body)` for route handlers; 6 Vitest cases
+**Activity log page** — `/activity`
+- Server component with `ActivityFilterBar` client component for filters
+- Filters: date range, entity type, action
+- Rows show timestamp, entity, action, id prefix; expandable to a field-level before/after diff for updates or full JSON for create/delete
+- Capped at 200 rows (labeled when the cap is hit)
 
-**Dashboard** (`/dashboard`) — every PRD §5.6 tile + list
-- Active loans, principal lent (active), total outstanding, overdue count + amount
-- Interest earned this month / this year / all time
-- Collections this month
-- Due-in-next-7-days list (top 5, linked to loan pages)
-- Recent payments list (top 5, borrower + date + method + amount)
-- Overdue banner links to aging report
+**Settings page** — `/settings`
+- Profile card: display name, default grace days, default interest method, default repayment type (react-hook-form + Zod)
+- Region card: currency/timezone read-only (PHP · Asia/Manila) per PRD MVP
+- Data export card: single link to `/api/export` — ZIP of CSVs
+- Danger zone: account deletion inside an AlertDialog
 
-**Reports** — hub at `/reports` + 6 report pages + 6 CSV export routes
-- Portfolio summary — per-loan snapshot at "as of" end date with balance, total paid, interest earned
-- Borrower statement — pick a borrower, get full schedule per loan + payment history in range
-- Collections — payments received in range, grouped by day/week/month toggle AND by method, with per-column and per-row totals
-- Interest income — per-month interest portion of payments received, via the new allocation helper
-- Aging — 1-30 / 31-60 / 61-90 / 90+ bucketing on the oldest days-past-due per loan
-- Write-offs — loans with status `written_off` in range, showing loss (balance at write-off)
+**Defaults applied to new loans** — `/loans/new` fetches the caller's profile and pre-fills `graceDays`, `interestMethod`, `repaymentType` from it. Existing loans keep their originals.
 
-**Report infrastructure**
-- `src/lib/reports/loans.ts` — `loadAllLoans()` bundles loans + borrower names + payments + custom schedules in 4 queries. `summarizeAt(loan, asOf)` and `activePayments(loan, cutoff)` helpers reused across every report.
-- `src/lib/reports/date-range.ts` — safe `parseDateRange()` from search params with fallbacks
-- `src/lib/reports/{collections,interest,aging}.ts` — shared bucketing logic (page + CSV both call the same function so numbers match)
-- `DateRangeForm` client component — uncontrolled inputs, key on `${from}-${to}` so revalidation resets cleanly
+**Data export** — `/api/export` (route handler)
+- Bundles `profile`, `borrowers`, `loans`, `loan_custom_schedule`, `payments`, `activity_log` as CSVs into a ZIP via `jszip`
+- README.txt in the ZIP explains contents and cites RA 10173 portability
+- Only the caller's rows (RLS enforced on every table)
 
-**Nav** — Reports link added to the app-shell nav.
+**Integration tests** — `integration/rls.test.ts` extended to 19 cases (was 17)
+- Assert the trigger records create/update/delete for user A
+- Confirm user B still sees zero activity log rows
 
-## What's shipped (Phases 0–5)
+**App shell** — nav now includes `Activity` and `Settings` links.
+
+## What's shipped (Phases 0–6)
 
 **Framework & tooling**
 - Next.js 16 App Router + Turbopack + TypeScript
-- Tailwind CSS v4 + shadcn/ui (base-ui variant)
-- Runtime: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `@hookform/resolvers`, `server-only`
+- Tailwind CSS v4 + shadcn/ui (base-ui variant, Wealthy Greens palette, IBM Plex Sans/Mono)
+- Runtime: `@supabase/ssr`, `@supabase/supabase-js`, `decimal.js`, `zod`, `recharts`, `date-fns`, `react-hook-form`, `@hookform/resolvers`, `server-only`, `jszip`
 - Dev: Vitest 3, jsdom 24, Playwright, Prettier, Supabase CLI (workspace dep), `ws` for Node 20 realtime shim
 
 **Engine** — 39 Vitest cases (30 core + 3 allocation + 6 CSV)
 
-**Supabase** — 7 migrations applied, RLS enforced (17/17 integration tests), tightened payments policy, generated database types
+**Supabase** — 8 migrations applied to remote, RLS enforced (19/19 integration tests), tightened payments policy, activity-log triggers writing on every mutation
 
-**Routes** (26 total, all dynamic)
+**Routes** (29 total, all dynamic)
 - Public: `/`, `/login`, `/sign-up`, `/reset-password`, `/reset-password/update`, `/auth/callback`
-- Authed pages: `/dashboard`, `/borrowers`, `/borrowers/new`, `/borrowers/[id]`, `/loans`, `/loans/new`, `/loans/[id]`, `/loans/[id]/edit`, `/reports`, `/reports/{portfolio,statement,collections,interest,aging,write-offs}`
+- Authed pages: `/dashboard`, `/borrowers`, `/borrowers/new`, `/borrowers/[id]`, `/loans`, `/loans/new`, `/loans/[id]`, `/loans/[id]/edit`, `/reports`, `/reports/{portfolio,statement,collections,interest,aging,write-offs}`, `/activity`, `/settings`
 - CSV route handlers: `/reports/{portfolio,statement,collections,interest,aging,write-offs}/export`
+- Data export: `/api/export`
 
 ## Verified
 
-- ✅ `pnpm lint` (2 non-blocking React Compiler notes on RHF `watch()` — standard usage)
+- ✅ `pnpm lint` (3 non-blocking React Compiler notes on RHF `watch()`)
 - ✅ `pnpm typecheck`
 - ✅ `pnpm test` (39/39)
-- ✅ `pnpm build` — 26 routes, all dynamic
+- ✅ `pnpm build` — 29 routes
+- ✅ `pnpm test:integration` (19/19, including trigger assertions)
 
 ## Known deferred
 
-- Activity log triggers, settings page, data export — Phase 6
 - Interest-only repayment type — Phase 8 backlog
-- Late-payment penalty rate/fee (PRD §12 Q2) — still open
+- Late-payment penalty rate/fee (PRD §12 Q2) — Phase 8 backlog
 - Vercel project not linked yet
+- Full Playwright two-user e2e — Phase 7
 
 ## Setup to-dos for the maintainer
 
-Nothing new for Phase 5. Still pending from earlier phases:
+Nothing new for Phase 6. Migrations were pushed and types regenerated as part of this phase. Still pending:
 - Supabase Dashboard → Auth → URL Configuration → Site URL: `http://localhost:3000` (dev) and eventual production URL
 - Vercel — `vercel link` and env vars when you deploy
 
@@ -99,4 +101,4 @@ Not configured. Quality checks run locally via `pnpm lint`, `pnpm typecheck`, `p
 
 ## Up next
 
-**Phase 6 — Activity Log & Settings.** Postgres triggers write to `activity_log` on every borrower/loan/payment change (SECURITY DEFINER for RLS). Read-only `/activity` page with entity + date filters. Settings page for display name, default grace period, default interest method, default repayment type. RA 10173 data export (ZIP of CSVs).
+**Phase 7 — Polish, QA & Launch.** WCAG 2.2 AA audit, Lighthouse + Axe in Playwright, security regression pass, legal review, backups + runbook, beta with 3–5 real lenders.
