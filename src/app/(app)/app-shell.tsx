@@ -20,6 +20,7 @@ import { GlobalLogPaymentButton } from '@/components/global-log-payment'
 import { CommandPalette } from '@/components/command-palette'
 import { ThemeToggle } from '@/components/theme'
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts'
+import { MobileNav } from '@/components/mobile-nav'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -61,7 +62,7 @@ export function AppShell({ userEmail, children }: Props) {
     <div className="flex min-h-screen">
       <aside
         className={cn(
-          'bg-sidebar text-sidebar-foreground sticky top-0 z-40 flex h-screen shrink-0 flex-col border-r print-hide',
+          'bg-sidebar text-sidebar-foreground sticky top-0 z-40 hidden h-screen shrink-0 flex-col border-r md:flex print-hide',
           'transition-[width] duration-200 will-change-[width]',
           open ? 'w-56' : 'w-14',
         )}
@@ -171,8 +172,9 @@ export function AppShell({ userEmail, children }: Props) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="w-full flex-1 px-4 py-6">{children}</main>
+        <main className="w-full flex-1 px-4 py-6 pb-24 md:pb-6">{children}</main>
       </div>
+      <MobileNav userEmail={userEmail} />
       <div className="print-hide">
         <CommandPalette />
         <KeyboardShortcuts />

@@ -83,7 +83,8 @@ pnpm test:integration
 - **⌘K hint chip** in `/borrowers` and `/loans` search inputs
 - **Global "Log payment"** button in the sidebar and dashboard header — inline loan picker, one-click flow
 - **Keyboard shortcuts** — `n` (context-aware new), `/` (focus search)
-- **Sidebar** — icon-collapse mode with sign-out, theme toggle, collapse control at bottom
+- **Sidebar** (≥md) — icon-collapse mode with sign-out, theme toggle, collapse control at bottom
+- **Mobile bottom tab bar** (<md) — Home / Loans / raised "+" (Log payment) / Borrowers / More; More sheet holds Reports, Activity, Settings, theme, sign out
 - **Dark mode** — light / dark / system, persisted, no FOUC
 - **Row actions** on `/loans` — `⋯` menu with Log payment / Open / Edit
 - **Sortable column headers** on `/loans` and `/borrowers` (nulls sort last)
