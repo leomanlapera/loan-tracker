@@ -146,7 +146,7 @@ describe('RLS — payments', () => {
       paid_on: '2026-02-01',
       method: 'cash',
     })
-    // Either RLS blocks or the loan FK check fails; both are acceptable.
+    // Tightened RLS blocks this via the "loan belongs to caller" WITH CHECK.
     expect(error).not.toBeNull()
   })
 })

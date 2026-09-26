@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import WebSocket from 'ws'
 import { loadEnvLocal, requireEnv } from './env'
 
 loadEnvLocal()
@@ -6,6 +7,13 @@ loadEnvLocal()
 const SUPABASE_URL = requireEnv('NEXT_PUBLIC_SUPABASE_URL')
 const ANON_KEY = requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
 const SERVICE_ROLE = requireEnv('SUPABASE_SERVICE_ROLE_KEY')
+
+// Node 20 has no global WebSocket. realtime-js constructs one even if we never
+// subscribe, so hand it a ws-backed constructor.
+const clientOpts = {
+  auth: { autoRefreshToken: false, persistSession: false },
+  realtime: { transport: WebSocket as unknown as typeof globalThis.WebSocket },
+}
 
 export interface TestUser {
   id: string
@@ -15,9 +23,7 @@ export interface TestUser {
 }
 
 export function adminClient(): SupabaseClient {
-  return createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  return createClient(SUPABASE_URL, SERVICE_ROLE, clientOpts)
 }
 
 /**
@@ -37,9 +43,7 @@ export async function createTestUser(prefix = 'rls'): Promise<TestUser> {
   })
   if (error || !data.user) throw new Error(`createUser failed: ${error?.message}`)
 
-  const client = createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const client = createClient(SUPABASE_URL, ANON_KEY, clientOpts)
   const signIn = await client.auth.signInWithPassword({ email, password })
   if (signIn.error) throw new Error(`signIn failed: ${signIn.error.message}`)
 
