@@ -51,7 +51,15 @@ export default function SignUpPage() {
             <p className="text-xs text-muted-foreground">At least 8 characters.</p>
           </div>
           <p className="text-xs text-muted-foreground">
-            By signing up you agree that this is a record-keeping tool, not legal or financial advice.
+            By signing up you agree to the{' '}
+            <Link href="/terms" className="underline">
+              Terms of use
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="underline">
+              Privacy notice
+            </Link>
+            .
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-3 pt-6">

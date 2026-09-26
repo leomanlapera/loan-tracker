@@ -8,9 +8,12 @@ export function SiteFooter() {
           © 2026 Loan Tracker · A record-keeping tool for private lenders in the Philippines.
         </div>
         <div className="flex items-center gap-4">
-          <span>Not legal or financial advice.</span>
-          <Link href="/reports" className="hover:text-foreground hidden sm:inline">
-            Reports
+          <span className="hidden sm:inline">Not legal or financial advice.</span>
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-foreground">
+            Terms
           </Link>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { rateLimit } from '@/lib/rate-limit'
 import {
   loginSchema,
   signUpSchema,
@@ -44,6 +45,14 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
 }
 
 export async function signUpAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const gate = await rateLimit('sign-up', { limit: 5, windowMs: 60 * 60 * 1000 })
+  if (!gate.ok) {
+    return {
+      ok: false,
+      error: `Too many sign-up attempts. Try again in ${Math.ceil(gate.retryAfterSeconds / 60)} minute(s).`,
+    }
+  }
+
   const parsed = signUpSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -83,6 +92,14 @@ export async function requestPasswordResetAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const gate = await rateLimit('reset-password', { limit: 5, windowMs: 60 * 60 * 1000 })
+  if (!gate.ok) {
+    return {
+      ok: false,
+      error: `Too many reset requests. Try again in ${Math.ceil(gate.retryAfterSeconds / 60)} minute(s).`,
+    }
+  }
+
   const parsed = requestResetSchema.safeParse({ email: formData.get('email') })
   if (!parsed.success) return { ok: false, error: firstError(parsed) }
 
