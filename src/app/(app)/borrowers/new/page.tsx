@@ -1,13 +1,13 @@
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent } from '@/components/ui/card'
 import { BorrowerForm } from '../borrower-form'
 
 export default function NewBorrowerPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <BackLink href="/borrowers">Borrowers</BackLink>
-      </div>
+      <Breadcrumbs
+        items={[{ href: '/borrowers', label: 'Borrowers' }, { label: 'New' }]}
+      />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New borrower</h1>
         <p className="text-sm text-muted-foreground">

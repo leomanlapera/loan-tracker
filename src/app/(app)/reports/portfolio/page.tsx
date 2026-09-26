@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { format, startOfYear } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -54,7 +54,9 @@ export default async function PortfolioReport({
   return (
     <div className="space-y-6">
       <div>
-        <BackLink href="/reports">Reports</BackLink>
+        <Breadcrumbs
+          items={[{ href: '/reports', label: 'Reports' }, { label: 'Portfolio summary' }]}
+        />
       </div>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Portfolio summary</h1>

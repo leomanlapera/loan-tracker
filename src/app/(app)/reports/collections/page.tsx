@@ -1,4 +1,4 @@
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -51,7 +51,9 @@ export default async function CollectionsReport({
   return (
     <div className="space-y-6">
       <div>
-        <BackLink href="/reports">Reports</BackLink>
+        <Breadcrumbs
+          items={[{ href: '/reports', label: 'Reports' }, { label: 'Collections' }]}
+        />
       </div>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Collections</h1>

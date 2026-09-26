@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { format, startOfYear } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -73,7 +73,9 @@ export default async function StatementReport({
   return (
     <div className="print-doc space-y-6">
       <div className="print-hide">
-        <BackLink href="/reports">Reports</BackLink>
+        <Breadcrumbs
+          items={[{ href: '/reports', label: 'Reports' }, { label: 'Borrower statement' }]}
+        />
       </div>
       <div className="print-hide">
         <h1 className="text-2xl font-semibold tracking-tight">Borrower statement</h1>

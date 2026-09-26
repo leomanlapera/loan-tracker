@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -87,9 +87,12 @@ export default async function BorrowerPage({ params }: { params: Promise<{ id: s
         hint="Borrower"
         kind="borrower"
       />
-      <div>
-        <BackLink href="/borrowers">Borrowers</BackLink>
-      </div>
+      <Breadcrumbs
+        items={[
+          { href: '/borrowers', label: 'Borrowers' },
+          { label: borrower.full_name },
+        ]}
+      />
 
       <div className="flex items-start justify-between gap-3">
         <div>

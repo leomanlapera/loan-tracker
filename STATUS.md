@@ -76,6 +76,9 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
 - **Node 20 realtime shim** for the Supabase integration tests
 
+**Polish batch #5 (2026-09-26)**
+- **Breadcrumbs across the app shell** — new `<Breadcrumbs items={[{ href, label }]} />` component (ChevronRight separators, last crumb marked `aria-current="page"`). Replaced `BackLink` on all 11 detail/nested pages: `/borrowers/new`, `/borrowers/[id]`, `/loans/new`, `/loans/[id]`, `/loans/[id]/edit` (three levels), and each of the 6 report pages. `back-link.tsx` deleted.
+
 **Polish batch #4 (2026-09-26)**
 - **Balance sparklines on `/loans` rows** — new `<Sparkline points={number[]} />` component (pure SVG, ~72×16, primary-color line + soft area fill). Rendered under the Balance amount using the engine's `schedule[].closingBalance` for past periods, pinned to the current balance as the final point. No new deps, no client JS.
 

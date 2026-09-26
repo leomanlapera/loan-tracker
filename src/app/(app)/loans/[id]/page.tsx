@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { compute } from '@/lib/engine/compute'
@@ -119,9 +119,12 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
         hint={`Loan · ${formatPHP(Number(loan.principal))} @ ${formatRate(Number(loan.monthly_rate))}`}
         kind="loan"
       />
-      <div>
-        <BackLink href="/loans">Loans</BackLink>
-      </div>
+      <Breadcrumbs
+        items={[
+          { href: '/loans', label: 'Loans' },
+          { label: borrower?.full_name ?? 'Loan' },
+        ]}
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>

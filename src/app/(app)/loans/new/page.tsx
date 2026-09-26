@@ -1,4 +1,4 @@
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
@@ -41,9 +41,9 @@ export default async function NewLoanPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <BackLink href="/loans">Loans</BackLink>
-      </div>
+      <Breadcrumbs
+        items={[{ href: '/loans', label: 'Loans' }, { label: 'New' }]}
+      />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New loan</h1>
         <p className="text-sm text-muted-foreground">

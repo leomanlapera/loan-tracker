@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LoanForm, type BorrowerOption } from '../../loan-form'
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent } from '@/components/ui/card'
 import type { LoanInput } from '@/lib/validation/loan'
 
@@ -67,9 +67,17 @@ export default async function EditLoanPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6">
-      <div>
-        <BackLink href={`/loans/${id}`}>Back to loan</BackLink>
-      </div>
+      <Breadcrumbs
+        items={[
+          { href: '/loans', label: 'Loans' },
+          {
+            href: `/loans/${id}`,
+            label:
+              (borrowers ?? []).find((b) => b.id === loan.borrower_id)?.full_name ?? 'Loan',
+          },
+          { label: 'Edit' },
+        ]}
+      />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Edit loan</h1>
         {hasPayments ? (
