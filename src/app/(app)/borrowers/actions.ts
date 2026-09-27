@@ -85,6 +85,24 @@ export async function archiveBorrower(id: string, archived: boolean): Promise<Ac
   return { ok: true, id }
 }
 
+export async function bulkArchiveBorrowers(
+  ids: string[],
+  archived: boolean,
+): Promise<ActionResult & { count?: number }> {
+  if (ids.length === 0) return { ok: true, count: 0 }
+  const { supabase } = await requireUserId()
+  const { error, count } = await supabase
+    .from('borrowers')
+    .update(
+      { archived_at: archived ? new Date().toISOString() : null },
+      { count: 'exact' },
+    )
+    .in('id', ids)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/borrowers')
+  return { ok: true, count: count ?? ids.length }
+}
+
 export async function deleteBorrower(id: string): Promise<ActionResult> {
   const { supabase } = await requireUserId()
   const { count, error: countError } = await supabase

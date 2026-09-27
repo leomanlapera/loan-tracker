@@ -16,6 +16,7 @@ import {
 import { BorrowerForm } from '../borrower-form'
 import { BorrowerActions } from './borrower-actions'
 import { RecentTracker } from '@/components/recent-tracker'
+import { CopyButton } from '@/components/ui/copy-button'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
 import { loanStatusLabel } from '@/lib/labels'
 import { summarize } from '@/lib/engine/loan-summary'
@@ -80,37 +81,66 @@ export default async function BorrowerPage({ params }: { params: Promise<{ id: s
   const activeLoanCount = enriched.filter((l) => l.loan.status === 'active').length
 
   return (
-    <div className="space-y-6">
+    <div className="print-doc space-y-6">
       <RecentTracker
         href={`/borrowers/${borrower.id}`}
         label={borrower.full_name}
         hint="Borrower"
         kind="borrower"
       />
-      <Breadcrumbs
-        items={[
-          { href: '/borrowers', label: 'Borrowers' },
-          { label: borrower.full_name },
-        ]}
-      />
+      <div className="print-hide">
+        <Breadcrumbs
+          items={[
+            { href: '/borrowers', label: 'Borrowers' },
+            { label: borrower.full_name },
+          ]}
+        />
+      </div>
 
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{borrower.full_name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {borrower.mobile || borrower.email || 'No contact info'}
-          </p>
+          {borrower.mobile || borrower.email ? (
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {borrower.mobile ? (
+                <div className="text-muted-foreground inline-flex items-center gap-1">
+                  <a
+                    href={`tel:${borrower.mobile}`}
+                    className="hover:text-foreground hover:underline"
+                  >
+                    {borrower.mobile}
+                  </a>
+                  <CopyButton value={borrower.mobile} label="Phone" />
+                </div>
+              ) : null}
+              {borrower.email ? (
+                <div className="text-muted-foreground inline-flex items-center gap-1">
+                  <a
+                    href={`mailto:${borrower.email}`}
+                    className="hover:text-foreground hover:underline"
+                  >
+                    {borrower.email}
+                  </a>
+                  <CopyButton value={borrower.email} label="Email" />
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No contact info</p>
+          )}
           {borrower.archived_at ? (
             <Badge variant="outline" className="mt-2">
               Archived
             </Badge>
           ) : null}
         </div>
-        <BorrowerActions
-          borrowerId={borrower.id}
-          archived={!!borrower.archived_at}
-          activeLoanCount={activeLoanCount}
-        />
+        <div className="print-hide">
+          <BorrowerActions
+            borrowerId={borrower.id}
+            archived={!!borrower.archived_at}
+            activeLoanCount={activeLoanCount}
+          />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -163,7 +193,7 @@ export default async function BorrowerPage({ params }: { params: Promise<{ id: s
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="print-hide">
           <CardHeader>
             <CardTitle>Edit borrower</CardTitle>
           </CardHeader>

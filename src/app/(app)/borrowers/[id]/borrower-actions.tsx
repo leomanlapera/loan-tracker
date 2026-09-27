@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { Printer } from 'lucide-react'
 import { archiveBorrower, deleteBorrower } from '../actions'
 import { Button } from '@/components/ui/button'
 import {
@@ -49,6 +50,10 @@ export function BorrowerActions({ borrowerId, archived, activeLoanCount }: Props
   return (
     <div className="flex items-center gap-2">
       {error ? <span className="text-destructive text-xs">{error}</span> : null}
+      <Button variant="outline" onClick={() => window.print()}>
+        <Printer aria-hidden />
+        Print
+      </Button>
       <Button variant="outline" onClick={doArchive} disabled={pending}>
         {archived ? 'Unarchive' : 'Archive'}
       </Button>

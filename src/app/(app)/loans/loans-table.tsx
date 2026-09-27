@@ -172,11 +172,11 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
                 const closed =
                   r.status === 'paid' || r.status === 'cancelled' || r.status === 'written_off'
                 return (
-                  <TableRow key={r.id}>
+                  <TableRow key={r.id} className="relative">
                     <TableCell>
                       <Link
                         href={`/loans/${r.id}`}
-                        className="font-medium hover:underline"
+                        className="font-medium hover:underline after:absolute after:inset-0"
                       >
                         {r.borrowerName}
                       </Link>
@@ -218,7 +218,9 @@ export function LoansTable({ rows }: { rows: LoanRow[] }) {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <LoanRowActions loanId={r.id} disabled={closed} />
+                      <div className="relative z-10 inline-flex">
+                        <LoanRowActions loanId={r.id} disabled={closed} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 )

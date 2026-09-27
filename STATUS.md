@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-09-26_
+_Last updated: 2026-09-27_
 
 ## Current phase
 
@@ -80,6 +80,22 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 **Structural**
 - **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
 - **Node 20 realtime shim** for the Supabase integration tests
+
+**Polish batch #8 (2026-09-27)**
+- **Payment delete → undo toast** — `payment-log.tsx` no longer opens an `AlertDialog` on delete; it soft-deletes immediately and shows a Sonner toast with an "Undo" action (8 s, calls `restorePayment`). Gmail-style safer/faster.
+- **Last-payment indicator on loan detail** — new line under the hero description: `Last payment {date} · ₱{amount} · {n} days ago` (or "No payments logged yet."). Uses `date-fns/differenceInCalendarDays` against `activePayments[0]`.
+- **`CopyButton`** — new reusable icon-only button (`src/components/ui/copy-button.tsx`) that writes to `navigator.clipboard` and toggles Copy → Check with a Sonner toast.
+- **Copyable loan ID on loan detail** — small mono `ID {loan.id.slice(0,8)}` chip on the badges row with a paired `<CopyButton>` that copies the full UUID for phone/email handoffs.
+- **Borrower contact upgrade** — borrower hero now shows phone and email as separate rows, each a real `tel:` / `mailto:` link paired with a `<CopyButton>`. Was: one line showing whichever came first.
+- **Write-off confirmation dialog** — write-off on the loan action bar was one-click destructive; now wrapped in `AlertDialog` with a clear description of what write-off means.
+- **Mobile schedule-table hint** — `sm:hidden` "Swipe horizontally to see all columns →" note above the schedule (the `Table` primitive already provides `overflow-x-auto` + `whitespace-nowrap` cells, so scroll worked but was invisible).
+- **Month-over-month deltas on dashboard tiles** — `Interest this month` and `Collections this month` now show a small `↑/↓ ±₱X (±Y%) vs last month` line under the value (tone-coloured `text-primary` / `text-destructive`). Handles zero-prev edge cases ("First activity vs. last month.", "No activity last month."). Second allocation pass in the same loop, no extra queries.
+- **Activity log — full-diff view for create/delete** — the diff table already handled `update`; it now also renders `create` (Field / Value) and `delete` (Field / Before, red strikethrough) using the same table shape. Removed the raw-JSON `<pre>` fallback. Field names humanised (`full_name` → `Full name`), noise keys (`id`, `user_id`, `created_at`, `updated_at`) filtered out.
+- **"Show deleted" persists across nav** — `payment-log.tsx` used to reset via `useState(false)`; now reads/writes `?deleted=1` via `useSearchParams` + `router.replace({ scroll: false })`. Survives back-nav, refresh, and shareable-link.
+- **SearchWithHint — Esc-to-clear** — pressing `Esc` while typing clears the input (synthesised via native value setter so React `onChange` still fires); the trailing kbd chip toggles from `⌘K` to `Esc` when the input has content. Applies to `/loans` and `/borrowers` search.
+- **Print borrower detail** — `<Printer /> Print` button next to Archive on borrower detail. Page wrapped in the shared `.print-doc` container; Edit-borrower card and BorrowerActions row are `.print-hide`. Uses the existing global `@media print` block, no new CSS.
+- **Whole-row clickable in list tables** — `/loans` and `/borrowers` rows now respond to middle-click / cmd-click / plain-click anywhere on the row (not just the borrower name). Uses the CSS `::after inset-0` overlay trick on the primary Link + `relative z-10` on the row-actions dropdown so the menu stays clickable.
+- **Bulk archive on `/borrowers`** — new `bulkArchiveBorrowers(ids, archived)` server action + a checkbox column + header (with tri-state select-all-visible). A sticky-ish action strip appears above the table when any row is selected: `{n} selected · Archive selected / Unarchive selected / Clear`. Toast on success, `router.refresh()` to update balances.
 
 **Polish batch #7 (2026-09-26)**
 - **Keyboard shortcut cheatsheet** — press `?` anywhere to open a Dialog listing every shortcut (⌘K/Ctrl+K, `/`, `?`, `n`). Grouped by Navigation / Actions with per-row `<kbd>` chips. Also opened programmatically via `window.dispatchEvent(new Event('shortcuts:open'))` — wired to a "Keyboard shortcuts" row in the mobile "More" sheet.

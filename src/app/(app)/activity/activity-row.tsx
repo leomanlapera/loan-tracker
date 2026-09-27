@@ -16,20 +16,26 @@ export interface ActivityRow {
   after: Record<string, unknown> | null
 }
 
-const IGNORED_KEYS = new Set(['created_at', 'updated_at'])
+const IGNORED_KEYS = new Set(['created_at', 'updated_at', 'user_id', 'id'])
 
 function computeDiff(row: ActivityRow): { field: string; before: unknown; after: unknown }[] {
-  if (row.action !== 'update') return []
   const before = row.before ?? {}
   const after = row.after ?? {}
   const keys = new Set([...Object.keys(before), ...Object.keys(after)])
   const out: { field: string; before: unknown; after: unknown }[] = []
   for (const key of keys) {
     if (IGNORED_KEYS.has(key)) continue
-    if (JSON.stringify(before[key]) === JSON.stringify(after[key])) continue
+    if (row.action === 'update' && JSON.stringify(before[key]) === JSON.stringify(after[key]))
+      continue
+    if (row.action === 'create' && (after[key] === null || after[key] === undefined)) continue
+    if (row.action === 'delete' && (before[key] === null || before[key] === undefined)) continue
     out.push({ field: key, before: before[key], after: after[key] })
   }
   return out
+}
+
+function humanField(key: string): string {
+  return key.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
 }
 
 function fmt(v: unknown): string {
@@ -42,8 +48,7 @@ function fmt(v: unknown): string {
 export function ActivityRowView({ row }: { row: ActivityRow }) {
   const [expanded, setExpanded] = useState(false)
   const diff = computeDiff(row)
-  const hasDetails =
-    row.action === 'update' ? diff.length > 0 : Boolean(row.before || row.after)
+  const hasDetails = diff.length > 0
 
   return (
     <div className="space-y-2 rounded-md border p-3">
@@ -79,32 +84,38 @@ export function ActivityRowView({ row }: { row: ActivityRow }) {
         ) : null}
       </div>
 
-      {expanded ? (
-        <div className="text-muted-foreground pt-1 text-xs">
-          {row.action === 'update' && diff.length > 0 ? (
-            <table className="w-full">
-              <thead>
-                <tr className="text-foreground text-left">
-                  <th className="py-1 pr-2 font-medium">Field</th>
-                  <th className="py-1 pr-2 font-medium">Before</th>
-                  <th className="py-1 font-medium">After</th>
+      {expanded && diff.length > 0 ? (
+        <div className="pt-1 text-xs">
+          <table className="w-full">
+            <thead>
+              <tr className="text-muted-foreground text-left">
+                <th className="py-1 pr-3 font-medium">Field</th>
+                {row.action !== 'create' ? (
+                  <th className="py-1 pr-3 font-medium">Before</th>
+                ) : null}
+                {row.action !== 'delete' ? (
+                  <th className="py-1 font-medium">
+                    {row.action === 'update' ? 'After' : 'Value'}
+                  </th>
+                ) : null}
+              </tr>
+            </thead>
+            <tbody>
+              {diff.map((d) => (
+                <tr key={d.field} className="align-top">
+                  <td className="py-1 pr-3">{humanField(d.field)}</td>
+                  {row.action !== 'create' ? (
+                    <td className="text-muted-foreground py-1 pr-3 font-mono line-through decoration-destructive/50">
+                      {fmt(d.before)}
+                    </td>
+                  ) : null}
+                  {row.action !== 'delete' ? (
+                    <td className="text-foreground py-1 font-mono">{fmt(d.after)}</td>
+                  ) : null}
                 </tr>
-              </thead>
-              <tbody>
-                {diff.map((d) => (
-                  <tr key={d.field} className="align-top">
-                    <td className="py-1 pr-2 font-mono">{d.field}</td>
-                    <td className="py-1 pr-2 font-mono">{fmt(d.before)}</td>
-                    <td className="py-1 font-mono">{fmt(d.after)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <pre className="whitespace-pre-wrap font-mono">
-              {JSON.stringify(row.after ?? row.before ?? {}, null, 2)}
-            </pre>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : null}
     </div>

@@ -4,6 +4,17 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { cancelLoan, writeOffLoan, reopenLoan } from '../actions'
 import { PaymentDialog } from './payment-dialog'
 
@@ -52,9 +63,28 @@ export function LoanActionBar({ loanId, status, disableCancel }: Props) {
           <Link href={`/loans/${loanId}/edit`}>
             <Button variant="outline">Edit</Button>
           </Link>
-          <Button variant="outline" disabled={pending} onClick={doWriteOff}>
-            Write off
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger
+              disabled={pending}
+              render={<Button variant="outline" />}
+            >
+              Write off
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Write off this loan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Marks the loan as uncollectible. It stops accruing interest and drops out of
+                  active reporting. You can reopen it later, but any interest that would have
+                  accrued in the meantime is lost.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={doWriteOff}>Write off</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button
             variant="outline"
             disabled={pending || disableCancel}

@@ -22,7 +22,10 @@ const statusLabel = periodStatusLabels
 
 export function ScheduleTable({ rows }: { rows: PeriodRow[] }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="space-y-2">
+      <p className="text-muted-foreground text-xs sm:hidden" aria-hidden>
+        Swipe horizontally to see all columns →
+      </p>
       <Table>
         <TableHeader>
           <TableRow>

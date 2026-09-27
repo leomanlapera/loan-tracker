@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { formatDate, formatPHP } from '@/lib/format'
@@ -17,17 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { PaymentDialog } from './payment-dialog'
 
 export interface PaymentRow {
@@ -47,7 +36,16 @@ interface Props {
 
 export function PaymentLog({ loanId, payments }: Props) {
   const router = useRouter()
-  const [showDeleted, setShowDeleted] = useState(false)
+  const pathname = usePathname()
+  const params = useSearchParams()
+  const showDeleted = params.get('deleted') === '1'
+  const setShowDeleted = (v: boolean) => {
+    const next = new URLSearchParams(params.toString())
+    if (v) next.set('deleted', '1')
+    else next.delete('deleted')
+    const qs = next.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
   const [editing, setEditing] = useState<PaymentRow | null>(null)
   const [pending, startTransition] = useTransition()
 
@@ -56,13 +54,27 @@ export function PaymentLog({ loanId, payments }: Props) {
     [payments, showDeleted],
   )
 
+  const doUndo = (paymentId: string) =>
+    startTransition(async () => {
+      const r = await restorePayment(loanId, paymentId)
+      if (!r.ok) {
+        toast.error(r.error)
+      } else {
+        toast.success('Payment restored')
+        router.refresh()
+      }
+    })
+
   const doDelete = (paymentId: string) =>
     startTransition(async () => {
       const r = await softDeletePayment(loanId, paymentId)
       if (!r.ok) {
         toast.error(r.error)
       } else {
-        toast.success('Payment deleted')
+        toast.success('Payment deleted', {
+          action: { label: 'Undo', onClick: () => doUndo(paymentId) },
+          duration: 8000,
+        })
         router.refresh()
       }
     })
@@ -145,29 +157,14 @@ export function PaymentLog({ loanId, payments }: Props) {
                         <Button size="sm" variant="ghost" onClick={() => setEditing(p)}>
                           Edit
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger
-                            disabled={pending}
-                            render={<Button size="sm" variant="destructive" />}
-                          >
-                            Delete
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete this payment?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Soft-delete — it stays in history and can be restored from &quot;Show
-                                deleted&quot;. Balances and status recompute immediately.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => doDelete(p.id)}>
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={pending}
+                          onClick={() => doDelete(p.id)}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     )}
                   </TableCell>

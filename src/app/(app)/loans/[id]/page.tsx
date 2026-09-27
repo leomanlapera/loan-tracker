@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/breadcrumbs'
 import { notFound } from 'next/navigation'
+import { differenceInCalendarDays } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
 import { compute } from '@/lib/engine/compute'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { CopyButton } from '@/components/ui/copy-button'
 import { formatDate, formatPHP, formatRate } from '@/lib/format'
 import {
   interestMethodLabel,
@@ -55,6 +57,7 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
 
   const activePayments = (payments ?? []).filter((p) => !p.deleted_at)
   const activeCount = activePayments.length
+  const lastPayment = activePayments[0] ?? null
   const customSchedule: CustomScheduleEntry[] | undefined =
     loan.repayment_type === 'custom'
       ? (schedule ?? []).map((s) => ({ period: s.period, plannedAmount: String(s.planned_amount) }))
@@ -141,10 +144,24 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
             Started {formatDate(loan.start_date)} · {formatPHP(Number(loan.principal))} @{' '}
             {formatRate(Number(loan.monthly_rate))} · {loan.tenure_months} months
           </p>
+          {lastPayment ? (
+            <p className="text-sm text-muted-foreground mt-1">
+              Last payment {formatDate(lastPayment.paid_on)} ·{' '}
+              <span className="tabular-nums">{formatPHP(Number(lastPayment.amount))}</span>
+              {' · '}
+              {daysAgoLabel(lastPayment.paid_on, now)}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">No payments logged yet.</p>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant="outline">{loanStatusLabel(loan.status)}</Badge>
             <Badge variant="outline">{interestMethodLabel(loan.interest_method)}</Badge>
             <Badge variant="outline">{repaymentTypeLabel(loan.repayment_type)}</Badge>
+            <span className="text-muted-foreground ml-1 inline-flex items-center gap-1 text-xs">
+              <span className="font-mono">ID {loan.id.slice(0, 8)}</span>
+              <CopyButton value={loan.id} label="Loan ID" />
+            </span>
           </div>
         </div>
         <LoanActionBar loanId={loan.id} status={loan.status} disableCancel={activeCount > 0} />
@@ -214,6 +231,13 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
       </Card>
     </div>
   )
+}
+
+function daysAgoLabel(paidOn: string, now: Date): string {
+  const days = differenceInCalendarDays(now, new Date(`${paidOn}T00:00:00Z`))
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  return `${days} days ago`
 }
 
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {

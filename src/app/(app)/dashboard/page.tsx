@@ -2,12 +2,14 @@ import Link from 'next/link'
 import {
   format,
   startOfMonth,
+  endOfMonth,
   startOfYear,
   isWithinInterval,
   addDays,
   isAfter,
+  subMonths,
 } from 'date-fns'
-import { Sparkles } from 'lucide-react'
+import { ArrowDown, ArrowUp, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { GlobalLogPaymentButton } from '@/components/global-log-payment'
@@ -20,6 +22,8 @@ export default async function DashboardPage() {
   const loans = await loadAllLoans()
   const now = new Date()
   const monthStart = startOfMonth(now)
+  const prevMonthStart = startOfMonth(subMonths(now, 1))
+  const prevMonthEnd = endOfMonth(subMonths(now, 1))
   const yearStart = startOfYear(now)
   const in7 = addDays(now, 7)
 
@@ -29,7 +33,9 @@ export default async function DashboardPage() {
   let interestAllTime = 0
   let interestThisYear = 0
   let interestThisMonth = 0
+  let interestLastMonth = 0
   let collectionsThisMonth = 0
+  let collectionsLastMonth = 0
   let overdueCount = 0
   let overdueAmount = 0
   const overdueLoans: {
@@ -118,6 +124,10 @@ export default async function DashboardPage() {
           interestThisMonth += Number(a.toInterest.toFixed(2))
           collectionsThisMonth += Number(a.amount.toFixed(2))
         }
+        if (isWithinInterval(a.paidOn, { start: prevMonthStart, end: prevMonthEnd })) {
+          interestLastMonth += Number(a.toInterest.toFixed(2))
+          collectionsLastMonth += Number(a.amount.toFixed(2))
+        }
       }
     } catch {}
 
@@ -198,13 +208,22 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Tile label="Interest this month" value={formatPHP(interestThisMonth)} />
+        <Tile
+          label="Interest this month"
+          value={formatPHP(interestThisMonth)}
+          compare={{ current: interestThisMonth, prev: interestLastMonth }}
+        />
         <Tile label="Interest this year" value={formatPHP(interestThisYear)} />
         <Tile label="Interest earned all time" value={formatPHP(interestAllTime)} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Tile label="Collections this month" value={formatPHP(collectionsThisMonth)} full />
+        <Tile
+          label="Collections this month"
+          value={formatPHP(collectionsThisMonth)}
+          compare={{ current: collectionsThisMonth, prev: collectionsLastMonth }}
+          full
+        />
         <Card>
           <CardHeader>
             <CardTitle className="text-muted-foreground text-sm font-medium">
@@ -303,11 +322,13 @@ function Tile({
   value,
   hint,
   full,
+  compare,
 }: {
   label: string
   value: string
   hint?: string
   full?: boolean
+  compare?: { current: number; prev: number }
 }) {
   return (
     <Card className={full ? 'sm:col-span-1' : undefined}>
@@ -317,7 +338,37 @@ function Tile({
       <CardContent>
         <div className="text-2xl font-semibold tabular-nums">{value}</div>
         {hint ? <div className="text-muted-foreground mt-1 text-sm tabular-nums">{hint}</div> : null}
+        {compare ? <CompareLine current={compare.current} prev={compare.prev} /> : null}
       </CardContent>
     </Card>
+  )
+}
+
+function CompareLine({ current, prev }: { current: number; prev: number }) {
+  if (prev === 0 && current === 0) {
+    return (
+      <div className="text-muted-foreground mt-1 text-xs">No activity last month.</div>
+    )
+  }
+  if (prev === 0) {
+    return (
+      <div className="text-muted-foreground mt-1 text-xs">First activity vs. last month.</div>
+    )
+  }
+  const delta = current - prev
+  const pct = Math.round((delta / prev) * 100)
+  const up = delta >= 0
+  const Icon = up ? ArrowUp : ArrowDown
+  const tone = up ? 'text-primary' : 'text-destructive'
+  return (
+    <div className={`mt-1 inline-flex items-center gap-1 text-xs tabular-nums ${tone}`}>
+      <Icon className="size-3" aria-hidden />
+      <span>
+        {up ? '+' : ''}
+        {formatPHP(Math.abs(delta))} ({up ? '+' : '−'}
+        {Math.abs(pct)}%)
+      </span>
+      <span className="text-muted-foreground">vs last month</span>
+    </div>
   )
 }
