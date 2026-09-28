@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-09-27_
+_Last updated: 2026-09-28_
 
 ## Current phase
 
@@ -34,7 +34,7 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 - Mobile (<md): fixed bottom tab bar replaces the sidebar (Home / Loans / raised "+" / Borrowers / More)
 - "Signed in as email" + Sign out + Theme + Collapse cluster at the sidebar footer (mirrored in the mobile More sheet)
 - No top header; no shared footer (content-first)
-- Full-width main content (no `max-w-6xl` cap)
+- Main content capped at `max-w-6xl` and centered (was full-width) for more comfortable line lengths on wide screens
 
 **Global actions**
 - **`GlobalLogPaymentButton`** in the sidebar (primary CTA) and on the dashboard header — searchable loan picker + inline payment form. Zero navigation to log a payment.
@@ -80,6 +80,12 @@ See [`phases/README.md`](./phases/README.md) for the full plan.
 **Structural**
 - **Login now rate-limited** — 10 attempts / 15 min per IP (was: only sign-up + reset)
 - **Node 20 realtime shim** for the Supabase integration tests
+
+**Polish batch #9 (2026-09-28)**
+- **Loan form restructured** — split into three sections (Loan basics / Interest & repayment / Advanced) with subtle section headers. Grace days + reference no. + notes moved into a collapsible `<details>` block that auto-opens when it has a value or an error.
+- **`SegmentedControl` component** — new `src/components/ui/segmented-control.tsx` (accessible radiogroup, arrow-key navigation, base-ui-free). Replaces the three 2–3 option Selects on the loan form (interest method, repayment type, after maturity) so the current choice is visible at a glance without an extra click.
+- **Sticky action bar on the loan form** — Save/Cancel row now pinned to the bottom of the viewport (`sticky bottom-16 md:bottom-0` to clear the mobile tab bar), with a border-top + backdrop blur. No more scrolling to submit after edits.
+- **Consistent Cancel/Submit order** — loan and borrower forms now show Cancel → Submit (right-aligned), matching the payment dialog's pattern.
 
 **Polish batch #8 (2026-09-27)**
 - **Payment delete → undo toast** — `payment-log.tsx` no longer opens an `AlertDialog` on delete; it soft-deletes immediately and shows a Sonner toast with an "Undo" action (8 s, calls `restorePayment`). Gmail-style safer/faster.

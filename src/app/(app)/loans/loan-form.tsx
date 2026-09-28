@@ -10,9 +10,6 @@ import { Loader2 } from 'lucide-react'
 import {
   loanSchema,
   type LoanInput,
-  INTEREST_METHODS,
-  REPAYMENT_TYPES,
-  AFTER_MATURITY,
   HIGH_RATE_THRESHOLD,
 } from '@/lib/validation/loan'
 import { createLoan, updateLoan } from './actions'
@@ -22,6 +19,7 @@ import { MoneyInput } from '@/components/ui/money-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import {
   Select,
   SelectContent,
@@ -65,6 +63,15 @@ const defaults = (initial?: Partial<LoanInput>): LoanInput => ({
   customSchedule: initial?.customSchedule,
 })
 
+function SectionHeader({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="space-y-1">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {description ? <p className="text-muted-foreground text-xs">{description}</p> : null}
+    </div>
+  )
+}
+
 export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Props) {
   const router = useRouter()
   const [formError, setFormError] = useState<string | null>(null)
@@ -79,7 +86,6 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
 
   const values = watch()
 
-  // Custom schedule field array
   const { fields, replace } = useFieldArray({ control, name: 'customSchedule' })
   useEffect(() => {
     if (values.repaymentType !== 'custom') return
@@ -96,6 +102,11 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
     const r = Number(values.monthlyRate)
     return Number.isFinite(r) && r > HIGH_RATE_THRESHOLD
   }, [values.monthlyRate])
+
+  const hasAdvancedError =
+    !!errors.graceDays || !!errors.referenceNo || !!errors.notes
+  const advancedTouched =
+    (values.graceDays ?? 0) > 0 || !!values.referenceNo || !!values.notes
 
   const onSubmit = handleSubmit((data) => {
     setFormError(null)
@@ -120,124 +131,124 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
-      <form onSubmit={onSubmit} className="space-y-6 lg:col-span-3" noValidate>
+      <form onSubmit={onSubmit} className="space-y-8 lg:col-span-3" noValidate>
         {formError ? (
           <p role="alert" className="border-destructive/40 text-destructive rounded-md border bg-red-50 px-3 py-2 text-sm">
             {formError}
           </p>
         ) : null}
 
-        <Field
-          id="borrowerId"
-          label="Borrower"
-          error={errors.borrowerId?.message}
-          hint={mode === 'edit' ? "A loan's borrower can't be changed after it's created." : undefined}
-        >
-          <Controller
-            control={control}
-            name="borrowerId"
-            render={({ field }) => (
-              <Select
-                value={field.value}
-                onValueChange={(v) => field.onChange(v ?? '')}
-                disabled={mode === 'edit'}
-              >
-                <SelectTrigger id="borrowerId">
-                  <SelectValue placeholder="Choose a borrower">
-                    {(v) =>
-                      borrowers.find((b) => b.id === String(v))?.name ?? 'Choose a borrower'
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {borrowers.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </Field>
+        <section className="space-y-5">
+          <SectionHeader title="Loan basics" description="Who's borrowing, how much, and when." />
 
-        <div className="grid gap-5 sm:grid-cols-2">
           <Field
-            id="principal"
-            label="Principal"
-            error={errors.principal?.message}
-            hint={editingLocked?.principal ? 'Locked because payments exist.' : undefined}
+            id="borrowerId"
+            label="Borrower"
+            error={errors.borrowerId?.message}
+            hint={mode === 'edit' ? "A loan's borrower can't be changed after it's created." : undefined}
           >
             <Controller
               control={control}
-              name="principal"
+              name="borrowerId"
               render={({ field }) => (
-                <MoneyInput
-                  id="principal"
-                  disabled={editingLocked?.principal}
+                <Select
                   value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                />
+                  onValueChange={(v) => field.onChange(v ?? '')}
+                  disabled={mode === 'edit'}
+                >
+                  <SelectTrigger id="borrowerId">
+                    <SelectValue placeholder="Choose a borrower">
+                      {(v) =>
+                        borrowers.find((b) => b.id === String(v))?.name ?? 'Choose a borrower'
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {borrowers.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             />
           </Field>
-          <Field
-            id="monthlyRate"
-            label="Monthly rate (%)"
-            error={errors.monthlyRate?.message}
-            hint={
-              editingLocked?.monthlyRate
-                ? 'Locked because payments exist.'
-                : highRate
-                  ? `Warning: ${values.monthlyRate}% per month is high — Philippine courts may reduce rates they find unconscionable.`
-                  : undefined
-            }
-          >
-            <Input
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              id="principal"
+              label="Principal"
+              error={errors.principal?.message}
+              hint={editingLocked?.principal ? 'Locked because payments exist.' : undefined}
+            >
+              <Controller
+                control={control}
+                name="principal"
+                render={({ field }) => (
+                  <MoneyInput
+                    id="principal"
+                    disabled={editingLocked?.principal}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+            </Field>
+            <Field
               id="monthlyRate"
-              inputMode="decimal"
-              disabled={editingLocked?.monthlyRate}
-              {...register('monthlyRate')}
-            />
-          </Field>
-        </div>
+              label="Monthly rate (%)"
+              error={errors.monthlyRate?.message}
+              hint={
+                editingLocked?.monthlyRate
+                  ? 'Locked because payments exist.'
+                  : highRate
+                    ? `Warning: ${values.monthlyRate}% per month is high — Philippine courts may reduce rates they find unconscionable.`
+                    : undefined
+              }
+            >
+              <Input
+                id="monthlyRate"
+                inputMode="decimal"
+                disabled={editingLocked?.monthlyRate}
+                {...register('monthlyRate')}
+              />
+            </Field>
+          </div>
 
-        <div className="grid gap-5 sm:grid-cols-3">
-          <Field id="tenureMonths" label="Tenure (months)" error={errors.tenureMonths?.message}>
-            <Input
-              id="tenureMonths"
-              type="number"
-              min={1}
-              max={120}
-              {...register('tenureMonths', { valueAsNumber: true })}
-            />
-          </Field>
-          <Field
-            id="startDate"
-            label="Start date"
-            error={errors.startDate?.message}
-            hint={editingLocked?.startDate ? 'Locked because payments exist.' : undefined}
-          >
-            <Input
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field id="tenureMonths" label="Tenure (months)" error={errors.tenureMonths?.message}>
+              <Input
+                id="tenureMonths"
+                type="number"
+                min={1}
+                max={120}
+                {...register('tenureMonths', { valueAsNumber: true })}
+              />
+            </Field>
+            <Field
               id="startDate"
-              type="date"
-              disabled={editingLocked?.startDate}
-              {...register('startDate')}
-            />
-          </Field>
-          <Field id="graceDays" label="Grace days" error={errors.graceDays?.message}>
-            <Input
-              id="graceDays"
-              type="number"
-              min={0}
-              max={365}
-              {...register('graceDays', { valueAsNumber: true })}
-            />
-          </Field>
-        </div>
+              label="Start date"
+              error={errors.startDate?.message}
+              hint={editingLocked?.startDate ? 'Locked because payments exist.' : undefined}
+            >
+              <Input
+                id="startDate"
+                type="date"
+                disabled={editingLocked?.startDate}
+                {...register('startDate')}
+              />
+            </Field>
+          </div>
+        </section>
 
-        <div className="grid gap-5 sm:grid-cols-3">
+        <section className="space-y-5">
+          <SectionHeader
+            title="Interest & repayment"
+            description="How interest accrues and how the borrower pays it back."
+          />
+
           <Field
             id="interestMethod"
             label="Interest method"
@@ -248,123 +259,120 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
               control={control}
               name="interestMethod"
               render={({ field }) => (
-                <Select
+                <SegmentedControl
+                  id="interestMethod"
                   value={field.value}
-                  onValueChange={(v) =>
-                    field.onChange((v ?? 'compound') as (typeof INTEREST_METHODS)[number])
-                  }
+                  onChange={field.onChange}
                   disabled={editingLocked?.interestMethod}
-                >
-                  <SelectTrigger id="interestMethod">
-                    <SelectValue>{(v) => (v === 'simple' ? 'Simple' : 'Compound')}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INTEREST_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m === 'compound' ? 'Compound' : 'Simple'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: 'compound', label: 'Compound' },
+                    { value: 'simple', label: 'Simple' },
+                  ]}
+                />
               )}
             />
           </Field>
+
           <Field id="repaymentType" label="Repayment type" error={errors.repaymentType?.message}>
             <Controller
               control={control}
               name="repaymentType"
               render={({ field }) => (
-                <Select
+                <SegmentedControl
+                  id="repaymentType"
                   value={field.value}
-                  onValueChange={(v) =>
-                    field.onChange((v ?? 'equal_installments') as (typeof REPAYMENT_TYPES)[number])
-                  }
-                >
-                  <SelectTrigger id="repaymentType">
-                    <SelectValue>
-                      {(v) =>
-                        v === 'lump_sum'
-                          ? 'Lump sum at maturity'
-                          : v === 'custom'
-                            ? 'Custom schedule'
-                            : 'Equal installments'
-                      }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="equal_installments">Equal installments</SelectItem>
-                    <SelectItem value="lump_sum">Lump sum at maturity</SelectItem>
-                    <SelectItem value="custom">Custom schedule</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={field.onChange}
+                  options={[
+                    { value: 'equal_installments', label: 'Equal installments' },
+                    { value: 'lump_sum', label: 'Lump sum' },
+                    { value: 'custom', label: 'Custom' },
+                  ]}
+                />
               )}
             />
           </Field>
+
           <Field id="afterMaturity" label="After maturity" error={errors.afterMaturity?.message}>
             <Controller
               control={control}
               name="afterMaturity"
               render={({ field }) => (
-                <Select
+                <SegmentedControl
+                  id="afterMaturity"
                   value={field.value}
-                  onValueChange={(v) =>
-                    field.onChange((v ?? 'continue_accruing') as (typeof AFTER_MATURITY)[number])
-                  }
-                >
-                  <SelectTrigger id="afterMaturity">
-                    <SelectValue>
-                      {(v) => (v === 'stop_accruing' ? 'Stop accruing' : 'Keep accruing')}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="continue_accruing">Keep accruing</SelectItem>
-                    <SelectItem value="stop_accruing">Stop accruing</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={field.onChange}
+                  options={[
+                    { value: 'continue_accruing', label: 'Keep accruing' },
+                    { value: 'stop_accruing', label: 'Stop accruing' },
+                  ]}
+                />
               )}
             />
           </Field>
-        </div>
 
-        {values.repaymentType === 'custom' ? (
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Custom schedule</div>
-            <p className="text-muted-foreground text-xs">
-              Amount planned for each period. The last period is auto-adjusted to close the balance.
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {fields.map((f, i) => (
-                <div key={f.id} className="flex items-center gap-2">
-                  <span className="text-muted-foreground w-10 text-xs">#{i + 1}</span>
-                  <Controller
-                    control={control}
-                    name={`customSchedule.${i}.plannedAmount` as const}
-                    render={({ field }) => (
-                      <MoneyInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                      />
-                    )}
-                  />
-                </div>
-              ))}
-            </div>
-            {errors.customSchedule ? (
-              <p role="alert" className="text-destructive text-xs">
-                {errors.customSchedule.message ?? 'Fix the custom schedule.'}
+          {values.repaymentType === 'custom' ? (
+            <div className="space-y-2 rounded-md border p-3">
+              <div className="text-sm font-medium">Custom schedule</div>
+              <p className="text-muted-foreground text-xs">
+                Amount planned for each period. The last period is auto-adjusted to close the balance.
               </p>
-            ) : null}
+              <div className="grid gap-2 sm:grid-cols-2">
+                {fields.map((f, i) => (
+                  <div key={f.id} className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-10 text-xs">#{i + 1}</span>
+                    <Controller
+                      control={control}
+                      name={`customSchedule.${i}.plannedAmount` as const}
+                      render={({ field }) => (
+                        <MoneyInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                        />
+                      )}
+                    />
+                  </div>
+                ))}
+              </div>
+              {errors.customSchedule ? (
+                <p role="alert" className="text-destructive text-xs">
+                  {errors.customSchedule.message ?? 'Fix the custom schedule.'}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+
+        <details
+          className="group border-t pt-4"
+          open={hasAdvancedError || advancedTouched}
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            <span>Advanced</span>
+            <span className="text-muted-foreground text-xs font-normal group-open:hidden">Show</span>
+            <span className="text-muted-foreground hidden text-xs font-normal group-open:inline">Hide</span>
+          </summary>
+          <div className="mt-4 space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="graceDays" label="Grace days" error={errors.graceDays?.message}>
+                <Input
+                  id="graceDays"
+                  type="number"
+                  min={0}
+                  max={365}
+                  {...register('graceDays', { valueAsNumber: true })}
+                />
+              </Field>
+              <Field id="referenceNo" label="Reference no." optional error={errors.referenceNo?.message}>
+                <Input id="referenceNo" {...register('referenceNo')} />
+              </Field>
+            </div>
+
+            <Field id="notes" label="Notes" optional error={errors.notes?.message}>
+              <Textarea id="notes" rows={3} {...register('notes')} />
+            </Field>
           </div>
-        ) : null}
-
-        <Field id="referenceNo" label="Reference no." optional error={errors.referenceNo?.message}>
-          <Input id="referenceNo" {...register('referenceNo')} />
-        </Field>
-
-        <Field id="notes" label="Notes" optional error={errors.notes?.message}>
-          <Textarea id="notes" rows={3} {...register('notes')} />
-        </Field>
+        </details>
 
         <div className="flex items-start gap-3 rounded-md border p-3">
           <Checkbox
@@ -387,7 +395,10 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
           </label>
         </div>
 
-        <div className="flex gap-3">
+        <div className="sticky bottom-16 z-10 flex justify-end gap-3 border-t bg-background/90 py-3 backdrop-blur supports-backdrop-filter:bg-background/70 md:bottom-0">
+          <Button type="button" variant="ghost" onClick={() => router.back()}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={isPending}>
             {isPending ? (
               <>
@@ -399,9 +410,6 @@ export function LoanForm({ mode, loanId, borrowers, initial, editingLocked }: Pr
             ) : (
               'Save changes'
             )}
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => router.back()}>
-            Cancel
           </Button>
         </div>
       </form>

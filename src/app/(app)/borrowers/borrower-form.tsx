@@ -93,7 +93,10 @@ export function BorrowerForm({ mode, borrowerId, initial }: Props) {
         <Textarea id="notes" rows={3} {...register('notes')} />
       </Field>
 
-      <div className="flex gap-3">
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="ghost" onClick={() => router.back()}>
+          Cancel
+        </Button>
         <Button type="submit" disabled={isPending}>
           {isPending ? (
             <>
@@ -105,9 +108,6 @@ export function BorrowerForm({ mode, borrowerId, initial }: Props) {
           ) : (
             'Save changes'
           )}
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => router.back()}>
-          Cancel
         </Button>
       </div>
     </form>

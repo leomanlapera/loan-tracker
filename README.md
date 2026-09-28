@@ -96,6 +96,7 @@ pnpm test:integration
 - **Empty states** with a clear CTA
 - **Sticky table headers** on long tables (schedule, payment log, reports)
 - **Currency prefix (₱)** inside every money input, plus **thousands separators** as you type; **eye toggle** on password fields
+- **Sectioned loan form** — three grouped sections (Loan basics / Interest & repayment / Advanced-collapsible) with a **sticky action bar** so Save is always in reach; **segmented toggles** for interest method, repayment type, and after-maturity behavior instead of dropdowns
 
 **Compliance & ops**
 - Public `/privacy` and `/terms` pages (RA 10173 notice, Civil Code Art. 1956/1959, RA 9474 disclaimer)
